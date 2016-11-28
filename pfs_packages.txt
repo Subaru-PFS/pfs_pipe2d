@@ -1,0 +1,5 @@
+# Packages should be listed in the order they will be built
+# Each line should contain the repository
+git://github.com/Subaru-PFS/obs_pfs
+git://github.com/Subaru-PFS/datamodel
+git://github.com/Subaru-PFS/drp_stella
