@@ -1,0 +1,5 @@
+# Packages should be listed in the order they will be built
+# Each line should contain the repository and commit-ish
+git://github.com/lsst/ctrl_pool 7fcb3ffc7db63843c3db12c211af29634eb09628
+git://github.com/lsst/pipe_drivers e677033910672546e61d8e5d6e8640577b7fa283
+git://github.com/lsst/display_ds9 e1d788fcfbdf4a6b932090703f7cdb97ed7067a5
