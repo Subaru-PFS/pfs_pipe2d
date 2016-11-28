@@ -1,8 +1,6 @@
-# This is the Travis-CI file for the pfs_pipe2d package.
-#
-# For a ".travis.yml" file for components of the PFS 2D pipeline
-# (as opposed to this top-level package which contains the tests),
-# see the "travis.yml.TEMPLATE" file.
+# This is a template for other packages (i.e., beside pfs_pipe2d) to use
+# as a ".travis.yml" file to enable Travis-CI. This enables CI on the
+# entire pipeline when changing only a single product in the stack.
 
 language: python
 sudo: false
@@ -18,7 +16,7 @@ notifications:
 # The actual installation is done under the 'script' so as to consolidate the
 # necessary front-end machinery (intercept log, decide which branch to use).
 install: true  # Bypass
-script: ./bin/pfs_travis.sh
+script: /bin/bash travis.sh
 
 # Caching gives us a small improvement in run time (we don't have to extract
 # the conda packages). We cache the LSST stack (conda, LSST conda packages,
