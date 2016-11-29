@@ -23,10 +23,13 @@ script: /bin/bash travis.sh
 # git-lfs, LSST overrides) and delete everything else because they will change
 # more frequently.
 cache:
+  # Use bleeding-edge casher, which deletes cache after extracting. This seems
+  # to be an undocumented Travis feature; I was told to use it by Travis casher
+  # developer Hiro Asari.
+  edge: true
   directories:
     - $HOME/pfs
   timeout: 1000
 before_cache:
-  - find $HOME/.casher -name "*.tgz" -print -exec rm {} \;
   - rm -r -f $HOME/pfs/pfs
   - rm -r -f $HOME/pfs/integration_test
