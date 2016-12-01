@@ -11,16 +11,37 @@ set -ev
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] <PREFIX>" 1>&2
+    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] [-p] <PREFIX>" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : branch of drp_stella_data to use" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: 'integration')" 1>&2
     echo "    -d <DIRNAME> : directory name to give data repo (default: 'INTEGRATION')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: 1)" 1>&2
     echo "    -n : don't cleanup temporary products" 1>&2
+    echo "    -p : enable python profiling" 1>&2
     echo "    <PREFIX> : directory under which to operate" 1>&2
     echo "" 1>&2
     exit 1
+}
+
+task_args() {
+    # Provide arguments for CmdLineTask
+    local name=$1  # Distinctive name for profiling output
+    if $PROFILE; then
+        echo "--profile profile.${name}.pstats"
+    else
+        echo ""
+    fi
+}
+
+poolTask_args() {
+    # Provide arguments for pool-based Task
+    local name=$1  # Distinctive name for profiling output
+    if $PROFILE; then
+        echo "--profile profile.${name}.pstats --batch-type none"
+    else
+        echo "--batch-type=smp --cores $CORES"
+    fi
 }
 
 # Parse command-line arguments
@@ -29,7 +50,8 @@ RERUN="integration"  # Rerun name to use
 TARGET="INTEGRATION"  # Directory name to give data repo
 CORES=1  # Number of cores to use
 CLEANUP=true  # Clean temporary products?
-while getopts ":b:c:d:nr:" opt; do
+PROFILE=false  # Profiling?
+while getopts ":b:c:d:npr:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
@@ -42,6 +64,9 @@ while getopts ":b:c:d:nr:" opt; do
             ;;
         n)
             CLEANUP=false
+            ;;
+        p)
+            PROFILE=true
             ;;
         r)
             RERUN=${OPTARG}
@@ -82,14 +107,16 @@ mkdir -p $TARGET
 # Ingest images into repo
 ingestImages.py $TARGET --mode=link \
     drp_stella_data/tests/data/raw/*.fits \
-    -c clobber=True register.ignore=True
+    -c clobber=True register.ignore=True \
+    $(task_args ingestImages)
 [ -e $TARGET/pfsState ] || cp -r drp_stella_data/tests/data/PFS/pfsState $TARGET
 
 # Build bias
 constructBias.py $TARGET --rerun $RERUN/bias \
     --id field=BIAS dateObs=2015-12-22 arm=r spectrograph=2 \
     --calibId calibVersion=bias arm=r spectrograph=2 \
-    --batch-type=smp --cores $CORES
+    $(poolTask_args constructBias)
+
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/bias ) || true
 
@@ -97,7 +124,7 @@ genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 constructDark.py $TARGET --rerun $RERUN/dark \
     --id field=DARK dateObs=2015-12-22 arm=r spectrograph=2 \
     --calibId calibVersion=dark arm=r spectrograph=2 \
-    --batch-type=smp --cores $CORES
+    $(poolTask_args constructDark)
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/dark ) || true
 
@@ -105,7 +132,7 @@ genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 constructFiberTrace.py $TARGET --rerun $RERUN/fiber \
     --id visit=29 \
     --calibId calibVersion=fiberTrace arm=r spectrograph=2 \
-    --batch-type=smp --cores $CORES
+    $(poolTask_args constructFiberTrace)
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/fiber ) || true
 
@@ -113,12 +140,12 @@ genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 constructFiberFlat.py $TARGET --rerun $RERUN/flat \
     --id visit=29..53 \
     --calibId calibVersion=flat arm=r spectrograph=2 \
-    --batch-type=smp --cores $CORES
+    $(poolTask_args constructFiberFlat)
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/flat ) || true
 
 # Process an arc
-detrend.py $TARGET --rerun $RERUN/detrend --id visit=58
-reduceArc.py $TARGET --rerun $RERUN/detrend --id visit=58
+detrend.py $TARGET --rerun $RERUN/detrend --id visit=58 $(task_args detrend)
+reduceArc.py $TARGET --rerun $RERUN/detrend --id visit=58 $(task_args reduceArc)
 
 echo "Done."
