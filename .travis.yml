@@ -1,0 +1,37 @@
+# This is the Travis-CI file for the pfs_pipe2d package.
+#
+# For a ".travis.yml" file for components of the PFS 2D pipeline
+# (as opposed to this top-level package which contains the tests),
+# see the "travis.yml.TEMPLATE" file.
+
+language: python
+sudo: false
+python:
+  - 2.7
+os:
+  - linux
+matrix:
+  fast_finish: true
+notifications:
+  email: false
+
+# The actual installation is done under the 'script' so as to consolidate the
+# necessary front-end machinery (intercept log, decide which branch to use).
+install: true  # Bypass
+script: ./bin/pfs_travis.sh
+
+# Caching gives us a small improvement in run time (we don't have to extract
+# the conda packages). We cache the LSST stack (conda, LSST conda packages,
+# git-lfs, LSST overrides) and delete everything else because they will change
+# more frequently.
+cache:
+  # Use bleeding-edge casher, which deletes cache after extracting. This seems
+  # to be an undocumented Travis feature; I was told to use it by Travis casher
+  # developer Hiro Asari.
+  edge: true
+  directories:
+    - $HOME/pfs
+  timeout: 1000
+before_cache:
+  - rm -r -f $HOME/pfs/pfs
+  - rm -r -f $HOME/pfs/integration_test
