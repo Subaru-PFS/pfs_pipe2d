@@ -14,6 +14,8 @@ matrix:
   fast_finish: true
 notifications:
   email: false
+  slack:
+    secure: JS4D+/WNIVHypReM6zD38XICWduDJdY5dBaSVldRZDsN43AvwzrH21/Fv7nKNUR4LUqHiwdRIqjrj+572E+YMirvE1djjXmh25kcIclR3AbAcD518WUXUrXME7m/C9GWdFNFBDTy8u4P7mo0Hm2XN2+qEaxYr5/GCsjz240Zl3FFZrVz8ITlqUrtxD+cqiGJhfpCI6mK9k9h55Yn6tivnxlS4ouasnZmEnswSlpQoKDzz/mItDX7k9/1JLyr0OyP6HZfw3GbfYGdJLQOJa0SPPk3QAT8boExt06X3hOmSIHTw7gsnFBDH00m0wPD3sF5HaR1P++hCfENwWc3pFYzGbAaeDp4j8z0rNCspxoEZ2gLYMXs6PHE/NyVXljs2xToqUe+w3lydrGJ8xxpVuC7aUfiVFbhEBQVqPPkhA4jQhLHZPcV/UtQTVd113+BQTxQJgfhif7EEiys//U5ISCPKLiCSyzmquDsUq3hEBay8jReiroHoRd5/pIHAQwDtg2YskZKTm5zy2cdeGFbGOhzg1LmjD9X/CmsQpQ9j2IGcTM+ubJ+SBIyIjxjaXiOXgA3I7EMFQeqAIFQ1qXf9sM/ltsp+A4+3LlNfGwgu05M82Zl/EysOPeLi/drzAkF+IVWLJcpSHgd/0b2BSgTxZNqNfNFbBTrXMJfGVOPselNuIc=
 branches:
   only:
     - master
