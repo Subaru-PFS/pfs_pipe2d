@@ -48,6 +48,8 @@ else
 fi
 echo "Building branch $BUILD_BRANCH ..."
 
+export SCONSFLAGS="-j 2"
+
 # This is the main business
 $HERE/bin/install_pfs.sh -b $BUILD_BRANCH $HOME/pfs >> $BUILD_OUTPUT 2>&1
 . $HOME/pfs/pfs_setups.sh >> $BUILD_OUTPUT 2>&1
