@@ -87,16 +87,14 @@ ingestImages.py $TARGET --mode=link \
 
 # Build bias
 constructBias.py $TARGET --rerun $RERUN/bias \
-    --id field=BIAS dateObs=2015-12-22 arm=r spectrograph=1 \
-    --calibId calibVersion=bias arm=r spectrograph=1 \
+    --id dateObs=2015-12-22 arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/bias ) || true
 
 # Build dark
 constructDark.py $TARGET --rerun $RERUN/dark \
-    --id field=DARK dateObs=2015-12-22 arm=r spectrograph=1 \
-    --calibId calibVersion=dark arm=r spectrograph=1 \
+    --id dateObs=2015-12-22 arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/dark ) || true
@@ -104,7 +102,6 @@ genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 # Build fiber trace
 constructFiberTrace.py $TARGET --rerun $RERUN/fiber \
     --id visit=104 \
-    --calibId calibVersion=fiberTrace arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/fiber ) || true
@@ -112,7 +109,6 @@ genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 # Build flat
 constructFiberFlat.py $TARGET --rerun $RERUN/flat \
     --id visit=104..112 \
-    --calibId calibVersion=flat arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/flat ) || true
