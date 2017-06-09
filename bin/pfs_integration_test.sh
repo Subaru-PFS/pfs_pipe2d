@@ -87,16 +87,16 @@ ingestImages.py $TARGET --mode=link \
 
 # Build bias
 constructBias.py $TARGET --rerun $RERUN/bias \
-    --id field=BIAS dateObs=2015-12-22 arm=r spectrograph=1 \
-    --calibId calibVersion=bias arm=r spectrograph=1 \
+    --id visit=7251..7255 \
+    --calibId arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/bias ) || true
 
 # Build dark
 constructDark.py $TARGET --rerun $RERUN/dark \
-    --id field=DARK dateObs=2015-12-22 arm=r spectrograph=1 \
-    --calibId calibVersion=dark arm=r spectrograph=1 \
+    --id visit=7291..7293 \
+    --calibId arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/dark ) || true
@@ -104,7 +104,7 @@ genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 # Build fiber trace
 constructFiberTrace.py $TARGET --rerun $RERUN/fiber \
     --id visit=104 \
-    --calibId calibVersion=fiberTrace arm=r spectrograph=1 \
+    --calibId arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/fiber ) || true
@@ -112,13 +112,19 @@ genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 # Build flat
 constructFiberFlat.py $TARGET --rerun $RERUN/flat \
     --id visit=104..112 \
-    --calibId calibVersion=flat arm=r spectrograph=1 \
+    --calibId arm=r spectrograph=1 \
     --batch-type=smp --cores $CORES
 genCalibRegistry.py --root $TARGET/CALIB --validity 1000
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/flat ) || true
 
-# Process an arc
-detrend.py $TARGET --rerun $RERUN/detrend --id visit=103
-reduceArc.py $TARGET --rerun $RERUN/detrend --id visit=103
+# Build arc
+constructArc.py $TARGET --rerun $RERUN/arc --id visit=103 \
+    --calibId arm=r spectrograph=1 \
+    --batch-type=smp --cores $CORES &&
+genCalibRegistry.py --root $TARGET/CALIB --validity 1000 &&
+
+# Process arc
+reduceArc.py $TARGET --rerun $RERUN/arc --id visit=103
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
 
 echo "Done."
