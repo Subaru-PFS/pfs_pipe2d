@@ -90,6 +90,13 @@ else
 	echo "Ignoring branch $BRANCH as you chose -G" >&2
     fi
 fi
+
+if [ $CORES = 1 ]; then
+    batchArgs="--batch-type=none"
+else
+    batchArgs="--batch-type=smp --cores $CORES"
+fi
+
 #
 # Look for the data files
 #
