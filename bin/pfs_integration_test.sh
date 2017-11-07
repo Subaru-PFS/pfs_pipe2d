@@ -5,6 +5,11 @@
 #
 # We run through the an example reduction to make sure everything's working.
 #
+if [ $(uname -s) = Darwin ]; then
+    if [ -z $DYLD_LIBRARY_PATH ]; then
+        export DYLD_LIBRARY_PATH=$LSST_LIBRARY_PATH
+    fi
+fi
 
 set -ev
 
