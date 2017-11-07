@@ -148,7 +148,8 @@ ingestCalibs.py $TARGET --output $TARGET/CALIB --validity 1000 \
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib ) || true
 
 # Process arc
-reduceArc.py $TARGET --rerun $RERUN/arc --id visit=103
+detrend.py $TARGET --rerun $RERUN/arc --id visit=103 || exit 1
+reduceArc.py $TARGET --rerun $RERUN/arc --id visit=103 || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
 
 echo "Done."
