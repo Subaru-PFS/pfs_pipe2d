@@ -121,42 +121,31 @@ ingestCalibs.py $TARGET --output $TARGET/CALIB --validity 1800 \
 		$drp_stella_data/pfsDetectorMap-005833-r1.fits --mode link --create || exit 1
 
 # Build bias
-constructBias.py $TARGET --rerun $RERUN/bias \
-    --id visit=7251..7255 \
-    --calibId arm=r spectrograph=1 \
-    --batch-type=smp --cores $CORES
-genCalibRegistry.py --root $TARGET/CALIB --validity 1000
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/bias ) || true
+constructBias.py $TARGET --rerun $RERUN/calib --id visit=7251..7255 $batchArgs || exit 1
+ingestCalibs.py $TARGET --output $TARGET/CALIB --validity 1000 \
+		    $TARGET/rerun/$RERUN/calib/BIAS/*.fits --mode move || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
 
 # Build dark
-constructDark.py $TARGET --rerun $RERUN/dark \
-    --id visit=7291..7293 \
-    --calibId arm=r spectrograph=1 \
-    --batch-type=smp --cores $CORES
-genCalibRegistry.py --root $TARGET/CALIB --validity 1000
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/dark ) || true
-
-# Build fiber trace
-constructFiberTrace.py $TARGET --rerun $RERUN/fiber \
-    --id visit=104 \
-    --calibId arm=r spectrograph=1 \
-    --batch-type=smp --cores $CORES
-genCalibRegistry.py --root $TARGET/CALIB --validity 1000
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/fiber ) || true
+constructDark.py $TARGET --rerun $RERUN/calib --id visit=7291..7293 $batchArgs || exit 1
+ingestCalibs.py $TARGET --output $TARGET/CALIB --validity 1000 \
+		    $TARGET/rerun/$RERUN/calib/DARK/*.fits --mode move || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
 
 # Build flat
-constructFiberFlat.py $TARGET --rerun $RERUN/flat \
-    --id visit=104..112 \
-    --calibId arm=r spectrograph=1 \
-    --batch-type=smp --cores $CORES
-genCalibRegistry.py --root $TARGET/CALIB --validity 1000
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/flat ) || true
+constructFiberFlat.py $TARGET --rerun $RERUN/calib --id visit=104..112 \
+		      -c xOffsetHdrKeyWord=sim.slit.xoffset \
+		      $batchArgs || exit 1
+ingestCalibs.py $TARGET --output $TARGET/CALIB --validity 1000 \
+		    $TARGET/rerun/$RERUN/calib/FLAT/*.fits --mode move || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
 
-# Build arc
-constructArc.py $TARGET --rerun $RERUN/arc --id visit=103 \
-    --calibId arm=r spectrograph=1 \
-    --batch-type=smp --cores $CORES &&
-genCalibRegistry.py --root $TARGET/CALIB --validity 1000 &&
+# Build fiber trace
+constructFiberTrace.py $TARGET --rerun $RERUN/calib -c xOffsetHdrKeyWord=sim.slit.xoffset \
+		       --id visit=104 $batchArgs || exit 1
+ingestCalibs.py $TARGET --output $TARGET/CALIB --validity 1000 \
+		    $TARGET/rerun/$RERUN/calib/FIBERTRACE/*.fits --mode move || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib ) || true
 
 # Process arc
 reduceArc.py $TARGET --rerun $RERUN/arc --id visit=103
