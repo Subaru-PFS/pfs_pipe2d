@@ -107,6 +107,7 @@ else
 fi
 
 # Construct repo
+rm -rf $TARGET
 mkdir -p $TARGET
 [ -e $TARGET/_mapper ] || echo "lsst.obs.pfs.PfsMapper" > $TARGET/_mapper
 
