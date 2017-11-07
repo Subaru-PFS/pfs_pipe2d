@@ -11,7 +11,7 @@ if [ $(uname -s) = Darwin ]; then
     fi
 fi
 
-set -ev
+set -evx
 
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
@@ -22,6 +22,7 @@ usage() {
     echo "    -r <RERUN> : rerun name to use (default: 'integration')" 1>&2
     echo "    -d <DIRNAME> : directory name to give data repo (default: 'INTEGRATION')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: 1)" 1>&2
+    echo "    -G : don't clone or update from git" 1>&2
     echo "    -n : don't cleanup temporary products" 1>&2
     echo "    <PREFIX> : directory under which to operate" 1>&2
     echo "" 1>&2
@@ -33,8 +34,9 @@ BRANCH=  # Branch to build
 RERUN="integration"  # Rerun name to use
 TARGET="INTEGRATION"  # Directory name to give data repo
 CORES=1  # Number of cores to use
+USE_GIT=true # checkout/update from git
 CLEANUP=true  # Clean temporary products?
-while getopts ":b:c:d:nr:" opt; do
+while getopts ":b:c:d:Gnr:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
@@ -44,6 +46,9 @@ while getopts ":b:c:d:nr:" opt; do
             ;;
         d)
             TARGET=${OPTARG}
+            ;;
+        G)
+            USE_GIT=false
             ;;
         n)
             CLEANUP=false
@@ -66,18 +71,32 @@ fi
 mkdir -p $PREFIX
 cd $PREFIX
 
-# Setting lfs.batch=true enables passwordless downloads with git-lfs.
-if [ -e drp_stella_data ]; then
-    pushd drp_stella_data
-    git fetch --all --force --prune --tags
-    popd
+if $USE_GIT; then
+    # Setting lfs.batch=true enables passwordless downloads with git-lfs.
+    if [ -e drp_stella_data ]; then
+	pushd drp_stella_data
+	git fetch --all --force --prune --tags
+	popd
+    else
+	git -c lfs.batch=true clone https://github.com/Subaru-PFS/drp_stella_data
+    fi
+    if [ -n $BRANCH ]; then
+	pushd drp_stella_data
+	git -c lfs.batch=true checkout $BRANCH || echo "Can't checkout $BRANCH"
+	popd
+    fi
 else
-    git -c lfs.batch=true clone https://github.com/Subaru-PFS/drp_stella_data
+    if [ -n $BRANCH ]; then
+	echo "Ignoring branch $BRANCH as you chose -G" >&2
+    fi
 fi
-if [ -n $BRANCH ]; then
-    pushd drp_stella_data
-    git -c lfs.batch=true checkout $BRANCH || echo "Can't checkout $BRANCH"
-    popd
+#
+# Look for the data files
+#
+if [ -d drp_stella_data ]; then
+    drp_stella_data=drp_stella_data/tests/data
+else
+    drp_stella_data=$(find . -name PFFA00010312.fits | xargs dirname | xargs dirname)
 fi
 
 # Construct repo
