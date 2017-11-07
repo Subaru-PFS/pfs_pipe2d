@@ -112,9 +112,9 @@ mkdir -p $TARGET
 
 # Ingest images into repo
 ingestImages.py $TARGET --mode=link \
-    drp_stella_data/tests/data/raw/*.fits \
+    $drp_stella_data/raw/*.fits \
     -c clobber=True register.ignore=True
-[ -e $TARGET/pfsState ] || cp -r drp_stella_data/tests/data/PFS/pfsState $TARGET
+[ -e $TARGET/pfsState ] || cp -r $drp_stella_data/PFS/pfsState $TARGET
 
 # Build bias
 constructBias.py $TARGET --rerun $RERUN/bias \
