@@ -1,0 +1,5 @@
+**/*.os
+**/*.pyc
+**/__pycache__
+**/.git
+/home/pfs/.eups
