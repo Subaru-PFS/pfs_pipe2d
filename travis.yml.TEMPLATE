@@ -14,6 +14,10 @@ matrix:
   fast_finish: true
 notifications:
   email: false
+  slack:
+    # See https://docs.travis-ci.com/user/notifications/#Configuring-Slack-notifications
+    # Run: travis encrypt "sumire-pfs:<token>" --add notifications.slack
+    secure: XXX
 branches:
   only:
     - master
