@@ -49,7 +49,7 @@ echo "Building branch $BUILD_BRANCH ..."
 
 # This is the main business
 cd $HOME/pfs_pipe2d
-docker build -f Dockerfile.fromLsst -t pfs_pipe2d . >> $BUILD_OUTPUT 2>&1
+docker build -f Dockerfile.fromLsst --build-arg INSTALL_PFS_ARGS="-b $BUILD_BRANCH" -t pfs_pipe2d . >> $BUILD_OUTPUT 2>&1
 docker run pfs_pipe2d /bin/bash -lc "\$PFS_PIPE2D_DIR/bin/pfs_integration_test.sh -b $BUILD_BRANCH -c 2 /opt/pfs/integration_test" >> $BUILD_OUTPUT 2>&1
 
 # The build finished without returning an error so dump a tail of the output
