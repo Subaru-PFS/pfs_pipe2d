@@ -38,7 +38,6 @@ PING_LOOP_PID=$!
 # * TRAVIS_PULL_REQUEST_BRANCH: If the current job is a pull request, the name of the branch from which the
 #   PR originated. "" if the current job is a push build.
 
-HERE=$(unset CDPATH && cd "$(dirname "$0")"/.. && pwd)
 cd $HOME
 BUILD_BRANCH=XXX
 if [ -n "$TRAVIS_PULL_REQUEST_BRANCH" ]; then
@@ -49,10 +48,9 @@ fi
 echo "Building branch $BUILD_BRANCH ..."
 
 # This is the main business
-$HERE/bin/install_pfs.sh -b $BUILD_BRANCH $HOME/pfs >> $BUILD_OUTPUT 2>&1
-. $HOME/pfs/pfs_setups.sh >> $BUILD_OUTPUT 2>&1
-git lfs install  # May not have been done if using cache
-$HERE/bin/pfs_integration_test.sh -b $BUILD_BRANCH -c 2 $HOME/pfs/integration_test >> $BUILD_OUTPUT 2>&1
+cd $HOME/pfs_pipe2d
+docker build -f Dockerfile.fromLsst -t pfs_pipe2d . >> $BUILD_OUTPUT 2>&1
+docker run pfs_pipe2d /bin/bash -lc "\$PFS_PIPE2D_DIR/bin/pfs_integration_test.sh -b $BUILD_BRANCH -c 2 /opt/pfs/integration_test" >> $BUILD_OUTPUT 2>&1
 
 # The build finished without returning an error so dump a tail of the output
 dump_output

@@ -1,0 +1,45 @@
+ARG LSST_VERSION=w_2018_13
+FROM docker.io/lsstsqre/centos:7-stack-lsst_distrib-${LSST_VERSION}
+
+MAINTAINER paprice
+LABEL description="Subaru PFS 2D pipeline" \
+      name="paprice/pfs_pipe2d"
+
+ARG DEVTOOLSET=6
+ARG LSST_DIR=/opt/lsst/software/stack
+ARG PFS_DIR=/opt/pfs
+#ARG INSTALL_PFS_ARGS=
+ARG INSTALL_PFS_ARGS="-b u/price/20180404"
+
+ENV OMP_NUM_THREADS=1
+ENV SCONSFLAGS="-j 4"
+
+USER root
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash \
+ && yum -y install git-lfs \
+ && yum clean all -y
+RUN mkdir -p ${PFS_DIR} && chown lsst:lsst ${PFS_DIR}
+
+USER lsst
+RUN git lfs install
+WORKDIR ${PFS_DIR}
+COPY bin/build_pfs.sh ${PFS_DIR}/
+RUN . ${LSST_DIR}/loadLSST.bash \
+ && setup lsst_distrib \
+ && export -f setup \
+ && . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
+ && ${PFS_DIR}/build_pfs.sh $INSTALL_PFS_ARGS -t current \
+ && ( find ${PFS_DIR} -exec strip --strip-unneeded --preserve-dates {} + \
+      > /dev/null 2>&1 || true ) \
+ && ( find ${PFS_DIR} -maxdepth 5 -name tests -type d -exec rm -rf {} + \
+      > /dev/null 2>&1 || true ) \
+ && ( find ${PFS_DIR} -maxdepth 5 -path "*doc/html" -type d -exec rm -rf {} + \
+      > /dev/null 2>&1 || true ) \
+ && ( find ${PFS_DIR} -maxdepth 5 -name src -type d -exec rm -rf {} + \
+      > /dev/null 2>&1 || true )
+
+RUN echo $'. '${LSST_DIR}'/loadLSST.bash ; \
+export -f setup ; \
+setup pfs_pipe2d' >> /home/lsst/.bashrc
+
+CMD /bin/bash
