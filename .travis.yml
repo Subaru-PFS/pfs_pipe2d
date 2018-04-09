@@ -4,10 +4,12 @@
 # (as opposed to this top-level package which contains the tests),
 # see the "travis.yml.TEMPLATE" file.
 
-language: python
-sudo: false
+language: python  # Not really, because we're running Docker, but we need something
+services:
+  - docker
+sudo: true
 python:
-  - 2.7
+  - 3.6
 os:
   - linux
 matrix:
@@ -20,21 +22,5 @@ branches:
 
 # The actual installation is done under the 'script' so as to consolidate the
 # necessary front-end machinery (intercept log, decide which branch to use).
-install: true  # Bypass
+install: ln -s $TRAVIS_BUILD_DIR $HOME/pfs_pipe2d
 script: ./bin/pfs_travis.sh
-
-# Caching gives us a small improvement in run time (we don't have to extract
-# the conda packages). We cache the LSST stack (conda, LSST conda packages,
-# git-lfs, LSST overrides) and delete everything else because they will change
-# more frequently.
-cache:
-  # Use bleeding-edge casher, which deletes cache after extracting. This seems
-  # to be an undocumented Travis feature; I was told to use it by Travis casher
-  # developer Hiro Asari.
-  edge: true
-  directories:
-    - $HOME/pfs
-  timeout: 1000
-before_cache:
-  - rm -r -f $HOME/pfs/pfs
-  - rm -r -f $HOME/pfs/integration_test
