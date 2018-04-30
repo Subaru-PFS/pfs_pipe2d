@@ -76,6 +76,7 @@ set -ev
 # The 'setup' function may not make it down to this child process
 eval $("$EUPS_DIR/bin/eups_setup" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR")
 
+build_package Subaru-PFS/drp_stella_data $BRANCH $TAG
 build_package Subaru-PFS/datamodel $BRANCH $TAG
 build_package Subaru-PFS/obs_pfs $BRANCH $TAG
 
