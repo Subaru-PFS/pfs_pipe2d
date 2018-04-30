@@ -71,24 +71,30 @@ fi
 mkdir -p $PREFIX
 cd $PREFIX
 
-if $USE_GIT; then
-    # Setting lfs.batch=true enables passwordless downloads with git-lfs.
-    if [ -e drp_stella_data ]; then
-	pushd drp_stella_data
-	git fetch --all --force --prune --tags
-	popd
-    else
-	git -c lfs.batch=true clone https://github.com/Subaru-PFS/drp_stella_data
+if [ -z $DRP_STELLA_DATA_DIR ]; then
+    if $USE_GIT; then
+        # Setting lfs.batch=true enables passwordless downloads with git-lfs.
+        if [ -e drp_stella_data ]; then
+            pushd drp_stella_data
+            git fetch --all --force --prune --tags
+            popd
+        else
+            git -c lfs.batch=true clone https://github.com/Subaru-PFS/drp_stella_data
+        fi
+        if [ -n $BRANCH ]; then
+            pushd drp_stella_data
+            git -c lfs.batch=true checkout $BRANCH || echo "Can't checkout $BRANCH"
+            popd
+        fi
+    elif [ ! -d drp_stella_data ]; then
+        echo "drp_stella_data is not setup, nor is it in the current directory" >&2
+        echo "and you told us not to use git. Cannot proceed since we can't find" >&2
+        echo "drp_stella_data." >&2
+        exit 1
+    elif [ -n "$BRANCH" ]; then
+        echo "Ignoring branch $BRANCH as you chose -G" >&2
     fi
-    if [ -n $BRANCH ]; then
-	pushd drp_stella_data
-	git -c lfs.batch=true checkout $BRANCH || echo "Can't checkout $BRANCH"
-	popd
-    fi
-else
-    if [ -n $BRANCH ]; then
-	echo "Ignoring branch $BRANCH as you chose -G" >&2
-    fi
+    setup -jr drp_stella_data
 fi
 
 if [ $CORES = 1 ]; then
@@ -101,9 +107,9 @@ fi
 # Look for the data files
 #
 if [ -d drp_stella_data ]; then
-    drp_stella_data=drp_stella_data/tests/data
+    drp_stella_data=$DRP_STELLA_DATA_DIR/tests/data
 else
-    drp_stella_data=$(find . -name PFFA00010312.fits | xargs dirname | xargs dirname)
+    drp_stella_data=$(find $DRP_STELLA_DATA_DIR -name PFFA00010312.fits | xargs dirname | xargs dirname)
 fi
 
 # Construct repo
