@@ -23,6 +23,7 @@ git_version () {
 
 build_package () {
     # Build a package from git, optionally checking out a particular version
+    set -ev
     local repo=$1  # Repository on GitHub (without the leading "git://github.com/")
     local commit=$2  # Commit/branch to checkout
     local tag=$3  # Tag to apply
