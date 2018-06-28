@@ -122,7 +122,7 @@ ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
 		$drp_stella_data/pfsDetectorMap-005833-r1.fits --mode=link || exit 1
 
 # Build bias
-constructBias.py $TARGET --rerun $RERUN/calib --id visit=7251..7255 $batchArgs || exit 1
+constructBias.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=7251..7255 $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 		    $TARGET/rerun/$RERUN/calib/BIAS/*.fits || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
@@ -135,14 +135,13 @@ ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 
 # Build flat
 constructFiberFlat.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=104..112 \
-		      -c xOffsetHdrKeyWord=sim.slit.xoffset \
 		      $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 		    $TARGET/rerun/$RERUN/calib/FLAT/*.fits || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
 
 # Build fiber trace
-constructFiberTrace.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib -c xOffsetHdrKeyWord=sim.slit.xoffset \
+constructFiberTrace.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib \
 		       --id visit=104 $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 		    $TARGET/rerun/$RERUN/calib/FIBERTRACE/*.fits || exit 1
