@@ -1,1 +1,3 @@
 setupRequired(drp_stella)
+
+envPrepend(PATH, ${PRODUCT_DIR}/bin)
