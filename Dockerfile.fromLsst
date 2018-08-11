@@ -14,7 +14,8 @@ ENV OMP_NUM_THREADS=1
 ENV SCONSFLAGS="-j 4"
 
 USER root
-RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash \
+RUN yum clean all -y \
+ && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash \
  && yum -y install git-lfs \
  && yum clean all -y
 RUN mkdir -p ${PFS_DIR} && chown lsst:lsst ${PFS_DIR}
