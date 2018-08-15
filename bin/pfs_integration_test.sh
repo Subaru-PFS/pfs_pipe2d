@@ -97,13 +97,15 @@ else
     batchArgs="--batch-type=smp --cores $CORES"
 fi
 
+export OMP_NUM_THREADS=1
+
 #
 # Look for the data files
 #
 if [ -d drp_stella_data ]; then
-    drp_stella_data=drp_stella_data/tests/data
+    drp_stella_data=drp_stella_data
 else
-    drp_stella_data=$(find . -name PFFA00010312.fits | xargs dirname | xargs dirname)
+    drp_stella_data=$(find . -name PFLA00583012.fits | xargs dirname | xargs dirname)
 fi
 
 # Construct repo
@@ -116,41 +118,39 @@ mkdir -p $TARGET/CALIB
 ingestImages.py $TARGET --mode=link \
     $drp_stella_data/raw/*.fits \
     -c clobber=True register.ignore=True
-[ -e $TARGET/pfsState ] || cp -r $drp_stella_data/PFS/pfsState $TARGET
 
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
-		$drp_stella_data/pfsDetectorMap-005833-r1.fits --mode=link || exit 1
+		$OBS_PFS_DIR/pfs/camera/pfsDetectorMap-005833-r1.fits --mode=copy || exit 1
 
 # Build bias
-constructBias.py $TARGET --rerun $RERUN/calib --id visit=7251..7255 $batchArgs || exit 1
+constructBias.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=3140..3149 $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 		    $TARGET/rerun/$RERUN/calib/BIAS/*.fits || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
 
 # Build dark
-constructDark.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=7291..7293 $batchArgs || exit 1
+constructDark.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=3154..3158 $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 		    $TARGET/rerun/$RERUN/calib/DARK/*.fits || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
 
 # Build flat
-constructFiberFlat.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=104..112 \
-		      -c xOffsetHdrKeyWord=sim.slit.xoffset \
-		      $batchArgs || exit 1
+constructFiberFlat.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib \
+            --id visit=5699..5753:9^5768..5813:9^5822 $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 		    $TARGET/rerun/$RERUN/calib/FLAT/*.fits || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
 
 # Build fiber trace
-constructFiberTrace.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib -c xOffsetHdrKeyWord=sim.slit.xoffset \
-		       --id visit=104 $batchArgs || exit 1
+constructFiberTrace.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib \
+		       --id visit=5694 $batchArgs || exit 1
+sqlite3 $TARGET/CALIB/calibRegistry.sqlite3 "delete from detectormap where visit0=$(echo pfsDetectorMap-005833-r1.fits | perl -ne '/pfsDetectorMap-0*([^-]+)-/; print $1');"
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/calib/FIBERTRACE/*.fits || exit 1
+		    $TARGET/rerun/$RERUN/calib/{FIBERTRACE,DETECTORMAP}/*.fits || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib ) || true
 
 # Process arc
-detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id visit=103 || exit 1
-reduceArc.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id visit=103 || exit 1
+reduceArc.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id visit=5830^5825 -j $CORES || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
 
 echo "Done."
