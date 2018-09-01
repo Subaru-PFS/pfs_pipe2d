@@ -70,6 +70,7 @@ fi
 
 mkdir -p $PREFIX
 cd $PREFIX
+TARGET="$(pwd)/$TARGET"
 
 if $USE_GIT; then
     # Setting lfs.batch=true enables passwordless downloads with git-lfs.
