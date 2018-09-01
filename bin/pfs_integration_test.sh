@@ -93,9 +93,9 @@ else
 fi
 
 if [ $CORES = 1 ]; then
-    batchArgs="--batch-type=none"
+    batchArgs="--batch-type=none --doraise"
 else
-    batchArgs="--batch-type=smp --cores $CORES"
+    batchArgs="--batch-type=smp --cores $CORES --doraise"
 fi
 
 export OMP_NUM_THREADS=1
