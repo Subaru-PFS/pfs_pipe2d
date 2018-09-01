@@ -152,6 +152,14 @@ ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 
 # Process arc
 reduceArc.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id visit=5830^5825 -j $CORES || exit 1
+# Read arc
+python -c "
+from lsst.daf.persistence import Butler
+butler = Butler(\"${TARGET}/rerun/${RERUN}/arc\")
+arc = butler.get(\"pfsArm\", visit=5825, arm=\"r\", spectrograph=1)
+print(arc.lam)
+print(arc.flux)
+" || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
 
 echo "Done."
