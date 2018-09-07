@@ -162,4 +162,7 @@ print(arc.flux)
 " || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
 
+# Detrend only
+detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=5830
+
 echo "Done."
