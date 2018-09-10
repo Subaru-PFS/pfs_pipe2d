@@ -1,3 +1,12 @@
+# docker build -t deadshort/ics_drp:latest -f Dockerfile.icsdrp .
+#
+# The PFS DRP products must be checked out somewhere in /software/devel and declared with 
+#   eups declare -c
+# 
+# docker run  -ti deadshort/ics_drp:latest -v /data:/data -v /software:/software
+#
+# ics_drpActor does not run yet -- need to figure out networking
+#
 ARG LSST_VERSION=v16_0
 FROM lsstsqre/centos:7-stack-lsst_distrib-${LSST_VERSION}
 
@@ -28,22 +37,13 @@ RUN . ${LSST_DIR}/loadLSST.bash \
  && setup lsst_distrib \
  && export -f setup \
  && . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
- && conda install twisted \
- && conda install ply
-
-#\
-# && ${PFS_DIR}/build_pfs.sh $INSTALL_PFS_ARGS -t current \
-# && ( find ${PFS_DIR} -exec strip --strip-unneeded --preserve-dates {} + \
-#      > /dev/null 2>&1 || true ) \
-# && ( find ${PFS_DIR} -maxdepth 5 -name tests -type d -exec rm -rf {} + \
-#      > /dev/null 2>&1 || true ) \
-# && ( find ${PFS_DIR} -maxdepth 5 -path "*doc/html" -type d -exec rm -rf {} + \
-#      > /dev/null 2>&1 || true ) \
-# && ( find ${PFS_DIR} -maxdepth 5 -name src -type d -exec rm -rf {} + \
-#      > /dev/null 2>&1 || true )
+ && conda install twisted ply
 
 RUN echo $'. '${LSST_DIR}'/loadLSST.bash ; \
-export -f setup ; \
-setup pfs_pipe2d' >> /home/lsst/.bashrc
+export -f setup unsetup; \
+PYTHONPATH=$PYTHONPATH:/software/conda/lib/python3.6/site-packages; \
+EUPS_PATH=$EUPS_PATH:/software/mhs/products; \
+setup ics_drpActor; \
+setup drp_stella' >> /home/lsst/.bashrc
 
 CMD /bin/bash
