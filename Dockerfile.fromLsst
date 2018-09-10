@@ -1,4 +1,4 @@
-ARG LSST_VERSION=w_2018_13
+ARG LSST_VERSION=v16_0
 FROM docker.io/lsstsqre/centos:7-stack-lsst_distrib-${LSST_VERSION}
 
 MAINTAINER paprice

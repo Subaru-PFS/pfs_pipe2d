@@ -43,7 +43,7 @@ install_lsst () {
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
-LSST_VERSION=w_2018_13
+LSST_VERSION=v16_0
 TAG=
 while getopts ":b:ehlL:t:" opt; do
     case "${opt}" in
