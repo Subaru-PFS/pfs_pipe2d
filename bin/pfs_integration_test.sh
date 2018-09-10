@@ -70,6 +70,7 @@ fi
 
 mkdir -p $PREFIX
 cd $PREFIX
+TARGET="$(pwd)/$TARGET"
 
 if $USE_GIT; then
     # Setting lfs.batch=true enables passwordless downloads with git-lfs.
@@ -92,9 +93,9 @@ else
 fi
 
 if [ $CORES = 1 ]; then
-    batchArgs="--batch-type=none"
+    batchArgs="--batch-type=none --doraise"
 else
-    batchArgs="--batch-type=smp --cores $CORES"
+    batchArgs="--batch-type=smp --cores $CORES --doraise"
 fi
 
 export OMP_NUM_THREADS=1
@@ -151,6 +152,17 @@ ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
 
 # Process arc
 reduceArc.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id visit=5830^5825 -j $CORES || exit 1
+# Read arc
+python -c "
+from lsst.daf.persistence import Butler
+butler = Butler(\"${TARGET}/rerun/${RERUN}/arc\")
+arc = butler.get(\"pfsArm\", visit=5825, arm=\"r\", spectrograph=1)
+print(arc.lam)
+print(arc.flux)
+" || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
+
+# Detrend only
+detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=5830
 
 echo "Done."
