@@ -1,26 +1,45 @@
 # docker build -t ics_drp:latest -f Dockerfile.icsdrp .
 #
-# The PFS DRP products must be checked out somewhere in /software/devel and declared with 
-#   eups declare -c
-# 
-# docker run  -ti ics_drp:latest -v /data:/data -v /software:/software
+# Networking...
+#  Create (once) a new docker bridge network, "parallel" to the PFS network:
 #
-# ics_drpActor does not run yet -- need to figure out networking
+#   docker docker network create --subnet 10.2.0.0/16  --gateway 10.2.0.1 ipfs
+#
+# Running...
+#  Make sure to set the listening host for drpActor to 10.2.0.2, and if you have iptables
+#  running allow connections from 10.2/16 to port 6093
+#
+#  Also, _do_ set a listening port (e.g. for below 9979)
+#
+#  Finally, $ICS_MHS_LOGS_ROOT must be under /data, or add it to the filesyatems in the command below
+#
+#  Launch the container, putting it in the private docker network, opening the actor port,
+#  and mounting the two filesystems:
+#
+#   docker run -ti --net ipfs -p 9979:9979 -v /data:/data -v /software:/software ics_drp:latest 
+#
+#  stageManager drp start should work. If not. cd $ICS_DRPACTOR_DIR and run 'python python/drpActor/main.py'
+#
+#
+# We build on top of Paul Price's construction of the LSST stack plus the PFS DRP products.
 #
 ARG DRP_VERSION=4.0
 FROM paprice/pfs_pipe2d:${DRP_VERSION}
 
 MAINTAINER deadshort
 LABEL description="Subaru PFS 2D pipeline plus instrument control" \
-      name="deadshort/pfs_drp_plus_ics"
+      name="pfs_icsdrp"
 
 ARG DEVTOOLSET=6
 ARG LSST_DIR=/opt/lsst/software/stack
 ARG PFS_DIR=/opt/pfs
-ARG INSTALL_PFS_ARGS
 
 ENV OMP_NUM_THREADS=1
 ENV SCONSFLAGS="-j 4"
+
+USER root
+RUN yum -y install iproute nmap-ncat \
+ && yum clean all -y
 
 USER lsst
 WORKDIR ${PFS_DIR}
@@ -28,8 +47,10 @@ RUN . ${LSST_DIR}/loadLSST.bash \
  && setup lsst_distrib \
  && export -f setup \
  && . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
- && conda install twisted ply
+ && conda install twisted ply ipython
 
+# This is disgusting. Figure out something cleaner.
+#
 RUN echo ' \
 PYTHONPATH=$PYTHONPATH:/software/conda/lib/python3.6/site-packages; \
 EUPS_PATH=$EUPS_PATH:/software/mhs/products; \
