@@ -1,14 +1,14 @@
-# docker build -t deadshort/ics_drp:latest -f Dockerfile.icsdrp .
+# docker build -t ics_drp:latest -f Dockerfile.icsdrp .
 #
 # The PFS DRP products must be checked out somewhere in /software/devel and declared with 
 #   eups declare -c
 # 
-# docker run  -ti deadshort/ics_drp:latest -v /data:/data -v /software:/software
+# docker run  -ti ics_drp:latest -v /data:/data -v /software:/software
 #
 # ics_drpActor does not run yet -- need to figure out networking
 #
-ARG LSST_VERSION=v16_0
-FROM lsstsqre/centos:7-stack-lsst_distrib-${LSST_VERSION}
+ARG DRP_VERSION=4.0
+FROM paprice/pfs_pipe2d:${DRP_VERSION}
 
 MAINTAINER deadshort
 LABEL description="Subaru PFS 2D pipeline plus instrument control" \
@@ -22,28 +22,17 @@ ARG INSTALL_PFS_ARGS
 ENV OMP_NUM_THREADS=1
 ENV SCONSFLAGS="-j 4"
 
-USER root
-RUN yum clean all -y \
- && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash \
- && yum -y install git-lfs \
- && yum clean all -y
-RUN mkdir -p ${PFS_DIR} && chown lsst:lsst ${PFS_DIR}
-
 USER lsst
-RUN git lfs install
 WORKDIR ${PFS_DIR}
-COPY bin/build_pfs.sh ${PFS_DIR}/
 RUN . ${LSST_DIR}/loadLSST.bash \
  && setup lsst_distrib \
  && export -f setup \
  && . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
  && conda install twisted ply
 
-RUN echo $'. '${LSST_DIR}'/loadLSST.bash ; \
-export -f setup unsetup; \
+RUN echo ' \
 PYTHONPATH=$PYTHONPATH:/software/conda/lib/python3.6/site-packages; \
 EUPS_PATH=$EUPS_PATH:/software/mhs/products; \
-setup ics_drpActor; \
-setup drp_stella' >> /home/lsst/.bashrc
+setup ics_drpActor' >> /home/lsst/.bashrc
 
 CMD /bin/bash
