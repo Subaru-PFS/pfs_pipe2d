@@ -3,13 +3,13 @@
 # Networking...
 #  Create (once) a new docker bridge network, "parallel" to the PFS network:
 #
-#   docker docker network create --subnet 10.2.0.0/16  --gateway 10.2.0.1 ipfs
+#   docker network create --subnet 10.2.0.0/16  --gateway 10.2.0.1 ipfs
 #
 # Running...
-#  Make sure to set the listening host for drpActor to 10.2.0.2, and if you have iptables
-#  running allow connections from 10.2/16 to port 6093
+#  Make sure to set the listening host for drpActor to 10.2.0.2 (in etc/drp.cfg [drp]), and if
+#  you have iptables running allow connections from 10.2/16 to port 6093
 #
-#  Also, _do_ set a listening port (e.g. for below 9979)
+#  Also, _do_ set a listening port for DRP (e.g. for below 9979)
 #
 #  Finally, $ICS_MHS_LOGS_ROOT must be under /data, or add it to the filesyatems in the command below
 #
@@ -37,11 +37,20 @@ ARG PFS_DIR=/opt/pfs
 ENV OMP_NUM_THREADS=1
 ENV SCONSFLAGS="-j 4"
 
+# Make our world PFS-compatible:
+#   user pfs, uid 1000:1000
+#   user pfs-data, uid 1001:1001
+#   accessible dirs
+#
 USER root
+RUN useradd -m -s /bin/bash -u 1001 -U -G 1000 pfs-data && \
+    groupmod -n pfs lsst && \
+    usermod -l pfs -m -d /home/pfs lsst && \
+    chmod 0755 /home/pfs
 RUN yum -y install iproute nmap-ncat \
  && yum clean all -y
 
-USER lsst
+USER pfs
 WORKDIR ${PFS_DIR}
 RUN . ${LSST_DIR}/loadLSST.bash \
  && setup lsst_distrib \
@@ -51,9 +60,19 @@ RUN . ${LSST_DIR}/loadLSST.bash \
 
 # This is disgusting. Figure out something cleaner.
 #
+USER pfs
+WORKDIR /home/pfs
+RUN echo 'umask 2' >> .bashrc
+
 RUN echo ' \
 PYTHONPATH=$PYTHONPATH:/software/conda/lib/python3.6/site-packages; \
 EUPS_PATH=$EUPS_PATH:/software/mhs/products; \
-setup ics_drpActor' >> /home/lsst/.bashrc
+setup ics_drpActor' >> .bashrc
+
+USER pfs-data
+WORKDIR /home/pfs-data
+RUN chmod 755 /home/pfs-data && rm .bashrc && cp /home/pfs/.bashrc .
+RUN . ${LSST_DIR}/loadLSST.bash \
+    && eups admin buildCache
 
 CMD /bin/bash
