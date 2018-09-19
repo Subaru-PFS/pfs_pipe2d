@@ -1,2 +1,4 @@
 .scon*
 python/pfs/pfs_pipe2d/version.py
+*.aux
+*.dvi
