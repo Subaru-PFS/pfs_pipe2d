@@ -1,5 +1,7 @@
-Flux calibration for PFS
-========================
+.. section-numbering::
+
+Introduction
+------------
 
 Flux calibration has two objectives:
 
@@ -86,6 +88,7 @@ The flat-field image, :math:`F(i, \lambda, x)`, is:
 
 .. math::
    F(i, \lambda, x) = f(\lambda).\Psi(i, \lambda, x)
+   :label: eqFlat
 
 where :math:`f(\lambda)` is the spectrum of the flat-field lamp
 and :math:`\Psi(i, \lambda, x)` is the response of the detector
@@ -98,6 +101,7 @@ Then our ratio image is:
    R(i, \lambda, x) = F(i, \lambda, x)/\bar{F(\lambda)} \\
    R(i, \lambda, x) = f(\lambda).\Psi(i, \lambda, x)/\bar{F(\lambda)} \\
    R(i, \lambda, x) = r(\lambda).\Psi(i, \lambda, x)
+   :label: eqRatio
 
 Here, :math:`\bar{F(\lambda)}` is the mean instrumental flat-field spectrum
 (extracted over the spatial dimension and averaged over fibers).
@@ -109,11 +113,13 @@ Science exposures are the response of the detector to the science spectra, :math
 
 .. math::
    S(i, \lambda, x) = s(i, \lambda).\Psi(i, \lambda, x)
+   :label: eqScience
 
 When we flat-field the science image using the ratio image, we get:
 
 .. math::
    S(i, \lambda, x)/R(i, \lambda, x) = s(i, \lambda)/r(\lambda)
+   :label: eqFlattened
 
 Notice that this flat-fielded image, :math:`S/R`, consists of the science spectra
 divided by a function that is entirely a function of wavelength.
@@ -125,7 +131,9 @@ Flux calibration is now reduced to finding the :math:`r(\lambda)`.
 One detail to consider is the spectral normalisation of the response function.
 Before dividing the observed flat fields by the mean of the observed flat spectrum,
 we could fit a function to the observed flat spectrum and normalise the spectrum by that;
-then the ratio image would have a much stronger variation as a function of wavelength
+or we could even use a function that is simply unity everywhere.
+In that case,
+the ratio image would have a much stronger variation as a function of wavelength
 (e.g., due to the dichroics and the grating blaze)
 and look much more like the fiber flat image.
 This change in normalisation would be swept up into the :math:`r(\lambda)`,
