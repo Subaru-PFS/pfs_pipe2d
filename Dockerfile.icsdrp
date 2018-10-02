@@ -69,9 +69,9 @@ PYTHONPATH=$PYTHONPATH:/software/conda/lib/python3.6/site-packages; \
 EUPS_PATH=$EUPS_PATH:/software/mhs/products; \
 setup ics_drpActor' >> .bashrc
 
-USER pfs-data
-WORKDIR /home/pfs-data
-RUN chmod 755 /home/pfs-data && rm .bashrc && cp /home/pfs/.bashrc .
+USER pfs
+WORKDIR /home/pfs
+#RUN chmod 755 /home/pfs-data && rm .bashrc && cp /home/pfs/.bashrc .
 RUN . ${LSST_DIR}/loadLSST.bash \
     && eups admin buildCache
 
