@@ -28,14 +28,14 @@ build_package () {
     local tag=$3  # Tag to apply
     local repoName=$(basename $repo)
 
-    ( curl -Lf https://api.github.com/repos/$repo/tarball/$commit || curl -Lf https://api.github.com/repos/$repo/tarball/master ) > ${repoName}.tar.gz
+    ( curl -Lfk https://api.github.com/repos/$repo/tarball/$commit || curl -Lfk https://api.github.com/repos/$repo/tarball/master ) > ${repoName}.tar.gz
     tar xvzf ${repoName}.tar.gz
     local repoDir=$(tar -tzf ${repoName}.tar.gz | head -1 | cut -f1 -d"/")
     pushd ${repoDir}
 
     setup -k -r .
     scons
-    version=$(curl --fail --header "Accept: application/vnd.github.VERSION.sha" https://api.github.com/repos/$repo/commits/$commit || curl --fail --header "Accept: application/vnd.github.VERSION.sha" https://api.github.com/repos/$repo/commits/master)
+    version=$(curl --fail --location --insecure --header "Accept: application/vnd.github.VERSION.sha" https://api.github.com/repos/${repo}/commits/${commit} || curl --fail --location --insecure --header "Accept: application/vnd.github.VERSION.sha" https://api.github.com/repos/${repo}/commits/master)
     scons_args=" version=${version}"
     [ -n "$tag" ] && scons_args+=" --tag=$tag"
     scons install declare ${scons_args}
