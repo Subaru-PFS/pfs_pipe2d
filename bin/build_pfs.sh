@@ -35,7 +35,7 @@ build_package () {
 
     setup -k -r .
     scons
-    version=$(curl --fail --location --insecure --header "Accept: application/vnd.github.VERSION.sha" https://api.github.com/repos/${repo}/commits/${commit} || curl --fail --location --insecure --header "Accept: application/vnd.github.VERSION.sha" https://api.github.com/repos/${repo}/commits/master)
+    version=$(curl --fail --location --insecure --header "Accept: application/vnd.github.sha" https://api.github.com/repos/${repo}/commits/${commit} || curl --fail --location --insecure --header "Accept: application/vnd.github.sha" https://api.github.com/repos/${repo}/commits/master)
     scons_args=" version=${version}"
     [ -n "$tag" ] && scons_args+=" --tag=$tag"
     scons install declare ${scons_args}
