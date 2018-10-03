@@ -16,7 +16,7 @@
 #  Launch the container, putting it in the private docker network, opening the actor port,
 #  and mounting the two filesystems:
 #
-#   docker run -ti --net ipfs -p 9979:9979 -v /data:/data -v /software:/software ics_drp:latest 
+#   docker run -u pfs -ti --net ipfs -p 9979:9979 -v /data:/data -v /software:/software -v /drp:/drp ics_drp:latest 
 #
 #  stageManager drp start should work. If not. cd $ICS_DRPACTOR_DIR and run 'python python/drpActor/main.py'
 #
