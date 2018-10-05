@@ -1,0 +1,69 @@
+FROM centos:7
+
+MAINTAINER paprice
+LABEL description="LSST packages for Subaru PFS 2D pipeline" \
+      name="paprice/pfs_lsst"
+
+ARG DEVTOOLSET=6
+ARG INSTALL_ARGS
+ARG INSTALL_DIR=/opt/pfs
+
+ENV OMP_NUM_THREADS=1
+ENV SCONSFLAGS="-j 4"
+
+SHELL ["/bin/bash", "-c"]
+
+USER root
+
+# Upgrade compiler using devtoolset-6
+RUN yum -y update \
+ && yum install -y centos-release-scl \
+ && yum install -y \
+        "devtoolset-${DEVTOOLSET}-gcc" \
+        "devtoolset-${DEVTOOLSET}-gcc-c++" \
+        "devtoolset-${DEVTOOLSET}-gcc-gfortran" \
+ && echo ". /opt/rh/devtoolset-${DEVTOOLSET}/enable" > "/etc/profile.d/devtoolset-${DEVTOOLSET}.sh" \
+ && yum clean all -y
+
+# LSST stack prerequisites
+RUN yum -y update \
+ && yum install -y epel-release \
+ && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash \
+ && yum install -y bison curl blas bzip2-devel bzip2 flex fontconfig \
+        freetype-devel git git-lfs libuuid-devel \
+        libXext libXrender libXt-devel make openssl-devel patch perl \
+        readline-devel tar zlib-devel ncurses-devel cmake glib2-devel \
+        java-1.8.0-openjdk gettext perl-ExtUtils-MakeMaker \
+        which \
+ && yum clean all -y
+
+# Conveniences
+RUN yum install -y screen tree \
+ && yum clean all -y
+
+RUN useradd -m pfs
+RUN mkdir -p ${INSTALL_DIR} && chown pfs:pfs ${INSTALL_DIR}
+
+USER pfs
+RUN mkdir -p ${INSTALL_DIR}/bin
+COPY ./bin/install_lsst.sh /home/pfs/bin/
+WORKDIR ${INSTALL_DIR}
+
+# Strips out anything excess after the install
+RUN . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
+ && bash /home/pfs/bin/install_lsst.sh ${INSTALL_ARGS} \
+ && ( find ${INSTALL_DIR} -exec strip --strip-unneeded --preserve-dates {} + \
+      > /dev/null 2>&1 || true ) \
+ && ( find ${INSTALL_DIR} -maxdepth 5 -name tests -type d -exec rm -rf {} + \
+      > /dev/null 2>&1 || true ) \
+ && ( find ${INSTALL_DIR} -maxdepth 5 -path "*doc/html" -type d -exec rm -rf {} + \
+      > /dev/null 2>&1 || true ) \
+ && ( find ${INSTALL_DIR} -maxdepth 5 -name src -type d -exec rm -rf {} + \
+      > /dev/null 2>&1 || true )
+
+RUN echo . /opt/rh/devtoolset-${DEVTOOLSET}/enable >> ${INSTALL_DIR}/loadLSST.bash \
+ && echo . ${INSTALL_DIR}/loadLSST.bash >> /home/pfs/.bashrc \
+ && git lfs install
+
+WORKDIR /home/pfs
+CMD /bin/bash

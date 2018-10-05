@@ -25,27 +25,14 @@ usage() {
     exit 1
 }
 
-install_lsst () {
-    # Following the instructions at https://pipelines.lsst.io/install/newinstall.html
-    set -ev
-    local version=$1  # Should be "-t XXX" or nothing at all
-    unset EUPS_DIR EUPS_PATH EUPS_PKGROOT EUPS_SHELL SETUP_EUPS
-    curl -OL https://raw.githubusercontent.com/lsst/lsst/master/scripts/newinstall.sh
-    bash newinstall.sh -bct
-    source loadLSST.bash
-    install_args=
-    [ -n "$version" ] && install_args+=" -t $version"
-    eups distrib install lsst_distrib $install_args --no-server-tags
-    curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python
-}
-
 
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
 LSST_VERSION=v16_0
+PACKAGES=
 TAG=
-while getopts ":b:ehlL:t:" opt; do
+while getopts ":b:eh$L:p:t:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
@@ -53,11 +40,11 @@ while getopts ":b:ehlL:t:" opt; do
         e)
             LSST_VERSION=
             ;;
-        l)
-            LIMITED=true
-            ;;
         L)
             LSST_VERSION=${OPTARG}
+            ;;
+        p)
+            PACKAGES=${OPTARG}
             ;;
         t)
             TAG=${OPTARG}
@@ -68,7 +55,6 @@ while getopts ":b:ehlL:t:" opt; do
     esac
 done
 shift $((OPTIND-1))
-
 PREFIX=$1
 if [ -z "$PREFIX" ] || [ -n "$2" ]; then
     usage
@@ -78,7 +64,14 @@ set -ev
 
 mkdir -p $PREFIX
 cd $PREFIX
-install_lsst $LSST_VERSION
+
+# Install LSST
+lsst_args=""
+[ -n "$PACKAGES" ] && lsst_args+=" -p \"$PACKAGES\""
+[ -n "$LSST_VERSION" ] && lsst_args+=" -L \"$LSST_VERSION\""
+bash $HERE/bin/install_lsst.sh ${lsst_args}
+
+# Setup LSST
 setup_args=""
 [ -n "$LSST_VERSION" ] && setup_args+="-t $LSST_VERSION"
 setup lsst_distrib ${setup_args}
