@@ -45,7 +45,7 @@ install_lsst () {
 BRANCH=
 LIMITED=false
 LSST_VERSION=v16_0
-PACKAGES="pipe_drivers"
+PACKAGES="pipe_drivers display_ds9 display_matplotlib"
 TAG=
 while getopts ":e:hL:p:" opt; do
     case "${opt}" in
