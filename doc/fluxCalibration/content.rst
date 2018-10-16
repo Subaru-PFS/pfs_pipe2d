@@ -71,19 +71,6 @@ This is the purpose of flat-fielding [#]_.
    which is to correct for pixel-to-pixel sensitivity variations in the spatial dimension within each fiber.
    However, the technique outlined here will correct for that as well.
 
-We will extract the spectrum from each fiber in the flat-field,
-and determine the mean spectrum of all the fibers [#]_;
-this will be our reference spectrum.
-We then make a synthetic image using this reference spectrum and the known fiber profile,
-and divide our flat-field image by this synthetic reference image.
-The result is an image of the ratio between the observed flat-field spectrum and the mean flat-field spectrum.
-
-.. [#] It's not clear to me if it's necessary to do this in wavelength space,
-   or if row-by-row is sufficient.
-   Row-by-row is preferred if it doesn't make a large difference,
-   since it is a much simpler operation;
-   but if there are large wavelength shifts between the individual spectra then it may not be accurate.
-
 The flat-field image, :math:`F(i, \lambda, x)`, is:
 
 .. math::
@@ -95,17 +82,16 @@ and :math:`\Psi(i, \lambda, x)` is the response of the detector
 as a function of fiber :math:`i`, wavelength :math:`\lambda`,
 and column (spatial dimension) :math:`x`.
 
-Then our ratio image is:
+We will divide each fiber by a common reference spectrum, :math:`\phi(\lambda)`,
+to form a ratio image:
 
 .. math::
-   R(i, \lambda, x) = F(i, \lambda, x)/\bar{F(\lambda)} \\
-   R(i, \lambda, x) = f(\lambda).\Psi(i, \lambda, x)/\bar{F(\lambda)} \\
+   R(i, \lambda, x) = F(i, \lambda, x)/\phi(\lambda) \\
+   R(i, \lambda, x) = f(\lambda).\Psi(i, \lambda, x)/\phi(\lambda) \\
    R(i, \lambda, x) = r(\lambda).\Psi(i, \lambda, x)
    :label: eqRatio
 
-Here, :math:`\bar{F(\lambda)}` is the mean instrumental flat-field spectrum
-(extracted over the spatial dimension and averaged over fibers).
-Since that is purely a function of wavelength,
+Since the reference spectrum, :math:`\phi(\lambda)`, is purely a function of wavelength,
 we can pull it and :math:`f(\lambda)` into a common spectral function,
 :math:`r(\lambda)`, which we'll call the "response function".
 
@@ -128,21 +114,18 @@ This means that response differences between fibers
 have been removed.
 Flux calibration is now reduced to finding the :math:`r(\lambda)`.
 
-One detail to consider is the spectral normalisation of the response function.
-Before dividing the observed flat fields by the mean of the observed flat spectrum,
-we could fit a function to the observed flat spectrum and normalise the spectrum by that;
-or we could even use a function that is simply unity everywhere.
-In that case,
-the ratio image would have a much stronger variation as a function of wavelength
-(e.g., due to the dichroics and the grating blaze)
-and look much more like the fiber flat image.
-This change in normalisation would be swept up into the :math:`r(\lambda)`,
-so it doesn't affect flux calibration downstream.
-However, dividing science images by an image constructed in that way
-would produce an image where the number of counts
-is not simply related to the number of photons hitting the detector,
-which is somewhat counter-intuitive.
-We therefore prefer the scheme outlined above.
+One detail to consider is the choice of the reference spectrum, :math:`\phi(\lambda)`.
+This could be any spectral function of our choosing,
+even a function that is equal to unity,
+since it's folded into the response function, which we'll measure later.
+However, some spectral functions are more convenient than others.
+Our desirements for this spectral function are that it should be smooth
+(because any small-scale features will need to be reproduced when we fit the response function)
+and it should roughly match the average normalisation of the flat spectra from the individual fibers
+(to preserve our intuition for the noise properties when we examine flat-fielded images).
+For this reason, a reasonable choice is to use a continuum fit to the median spectrum of the fibers.
+The continuum fit removes any small-scale features in the spectrum,
+and it has the right normalisation.
 
 Multiple ratio images constructed in this way can be coadded to build up signal
 or with the slit offset in the spatial dimension
