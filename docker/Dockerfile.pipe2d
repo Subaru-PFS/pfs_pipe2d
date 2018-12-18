@@ -1,0 +1,30 @@
+ARG VERSION=latest
+FROM paprice/pfs_lsst:$VERSION
+
+MAINTAINER paprice
+LABEL description="Subaru PFS 2D pipeline" \
+      name="paprice/pfs_pipe2d"
+
+ARG INSTALL_ARGS
+ARG INSTALL_DIR=/opt/pfs
+
+# Set to something unique, like $(date +%s), to force rebuild
+# https://stackoverflow.com/a/47017887
+ARG FORCE=XXX
+
+ENV OMP_NUM_THREADS=1
+ENV SCONSFLAGS="-j 4"
+
+SHELL ["/bin/bash", "-c"]
+
+USER pfs
+RUN mkdir -p ${INSTALL_DIR}/bin
+COPY bin/build_pfs.sh /home/pfs/bin/
+WORKDIR /home/pfs
+
+RUN FORCE=${FORCE} \
+ && . $INSTALL_DIR/loadLSST.bash \
+ && /home/pfs/bin/build_pfs.sh ${INSTALL_ARGS} -t current ${INSTALL_DIR} \
+ && echo setup pfs_pipe2d >> /home/pfs/.bashrc
+
+CMD /bin/bash

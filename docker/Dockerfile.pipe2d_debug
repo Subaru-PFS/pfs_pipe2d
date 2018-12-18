@@ -1,7 +1,9 @@
-# docker build -t paprice/pfs_pipe2d_debug:latest -f Dockerfile.debugging .
+ARG VERSION=latest
+FROM paprice/pfs_pipe2d:$VERSION
 
-ARG PFS_VERSION=latest
-FROM paprice/pfs_pipe2d:${PFS_VERSION}
+MAINTAINER paprice
+LABEL description="Subaru PFS 2D pipeline with debugging" \
+      name="paprice/pfs_pipe2d_debug"
 
 # Installs:
 # * libXft: required for ds9
@@ -14,6 +16,7 @@ RUN yum install -y libXft gdb valgrind libatomic libunwind libunwind-devel cmake
  && yum clean all -y
 
 RUN cd /opt/pfs \
+ && . /opt/rh/devtoolset-6/enable \
  && curl -Lf https://api.github.com/repos/PaulPrice/igprof/tarball/price/20180315 > igprof.tar.gz \
  && tar xvzf igprof.tar.gz \
  && cd $(tar -tzf igprof.tar.gz | head -1 | cut -f1 -d"/") \
@@ -23,5 +26,5 @@ RUN cd /opt/pfs \
  && ln -sf /usr/lib/libigprof.so /usr/lib64/libigprof.so \
  && rm /opt/pfs/igprof.tar.gz
 
-USER lsst
+USER pfs
 CMD /bin/bash

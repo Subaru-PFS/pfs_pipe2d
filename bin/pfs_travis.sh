@@ -25,6 +25,5 @@ echo "Building branch $BUILD_BRANCH ..."
 set -ev
 
 # This is the main business
-cd $HOME/pfs_pipe2d
-docker build -f Dockerfile.fromLsst --build-arg INSTALL_PFS_ARGS="-b $BUILD_BRANCH" -t pfs_pipe2d .
-docker run pfs_pipe2d /bin/bash -lc "\$PFS_PIPE2D_DIR/bin/pfs_integration_test.sh -b $BUILD_BRANCH -c 2 /opt/pfs/integration_test"
+cd $HOME/pfs_pipe2d/docker
+make PFS_BRANCH=$BUILD_BRANCH CORES=3 test
