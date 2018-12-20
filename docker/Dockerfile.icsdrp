@@ -64,8 +64,11 @@ USER pfs
 WORKDIR /home/pfs
 RUN echo 'umask 2' >> .bashrc
 
+RUN . ${LSST_DIR}/loadLSST.bash \
+    && echo '_PDIR=$(which python | sed "s:bin/python:lib/python3.6/site-packages:")' >> .bashrc
+
 RUN echo ' \
-PYTHONPATH=$PYTHONPATH:/software/conda/lib/python3.6/site-packages; \
+PYTHONPATH=$PYTHONPATH:$_PDIR:/software/conda/lib/python3.6/site-packages; \
 EUPS_PATH=$EUPS_PATH:/software/mhs/products; \
 setup ics_drpActor' >> .bashrc
 
