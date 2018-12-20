@@ -23,7 +23,7 @@
 #
 # We build on top of Paul Price's construction of the LSST stack plus the PFS DRP products.
 #
-ARG DRP_VERSION=4.0
+ARG DRP_VERSION=latest
 FROM paprice/pfs_pipe2d:${DRP_VERSION}
 
 MAINTAINER deadshort
@@ -56,7 +56,7 @@ RUN . ${LSST_DIR}/loadLSST.bash \
  && setup lsst_distrib \
  && export -f setup \
  && . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
- && conda install twisted ply ipython
+ && conda install twisted ply ipython jupyter
 
 # This is disgusting. Figure out something cleaner.
 #
