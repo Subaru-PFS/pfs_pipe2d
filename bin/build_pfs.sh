@@ -40,7 +40,7 @@ build_package () {
     scons install declare ${scons_args}
 
     popd
-    setup ${repoName} $version
+    setup ${repoName} $commit
     rm -rf ${repoDir}
 }
 
