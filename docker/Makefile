@@ -33,3 +33,4 @@ test: pipe2d
 
 all:	lsst pipe2d pipe2d_debug
 .PHONY: lsst pipe2d pipe2d_debug all test bin/install_lsst.sh bin/build_pfs.sh
+.NOTPARALLEL:
