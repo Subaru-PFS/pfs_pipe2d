@@ -31,5 +31,5 @@ test: pipe2d
 	docker run paprice/pfs_pipe2d:$(TAG) /bin/bash -lc "\$${PFS_PIPE2D_DIR}/bin/pfs_integration_test.sh -b $(PFS_BRANCH) -c $(CORES) /opt/pfs/integration_test"
 
 
-all:	lsst pipe2d pfs_pipe2d_debug
+all:	lsst pipe2d pipe2d_debug
 .PHONY: lsst pipe2d pipe2d_debug all test bin/install_lsst.sh bin/build_pfs.sh
