@@ -121,7 +121,7 @@ ingestPfsImages.py $TARGET --mode=link \
     -c clobber=True register.ignore=True
 
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
-		$drp_stella_data/raw/pfsDetectorMap-000031-r1.fits --mode=copy || exit 1
+		$drp_stella_data/raw/detectorMap-sim-1-r.fits --mode=copy || exit 1
 
 # Build bias
 constructBias.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/bias --id field=BIAS $batchArgs || exit 1
