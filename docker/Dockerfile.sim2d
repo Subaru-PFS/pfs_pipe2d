@@ -1,0 +1,30 @@
+ARG VERSION=latest
+FROM paprice/pfs_pipe2d:$VERSION
+
+MAINTAINER paprice
+LABEL description="Subaru PFS 2D simulator" \
+      name="paprice/pfs_sim2d"
+
+ARG INSTALL_DIR=/opt/sim2d
+ARG BRANCH=master
+
+USER root
+RUN mkdir -p ${INSTALL_DIR} && chown pfs:pfs ${INSTALL_DIR}
+
+USER pfs
+WORKDIR $INSTALL_DIR
+RUN . /opt/pfs/loadLSST.bash \
+ && setup sconsUtils \
+ && pip install fitsio \
+ && for pkg in drp_instdata drp_instmodel ; do \
+      git clone -b $BRANCH git://github.com/Subaru-PFS/$pkg || git clone git://github.com/Subaru-PFS/$pkg ; \
+      pushd $pkg \
+      && setup -k -r . \
+      && eups declare $pkg $VERSION -t current -r . \
+      && popd; \
+    done \
+ && mkdir -p /home/pfs/.config/matplotlib \
+ && echo "backend : TkAgg" > /home/pfs/.config/matplotlib/matplotlibrc
+
+WORKDIR /home/pfs
+CMD /bin/bash

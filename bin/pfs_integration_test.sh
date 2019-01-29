@@ -116,53 +116,61 @@ mkdir -p $TARGET/CALIB
 [ -e $TARGET/_mapper ] || echo "lsst.obs.pfs.PfsMapper" > $TARGET/_mapper
 
 # Ingest images into repo
-ingestImages.py $TARGET --mode=link \
-    $drp_stella_data/raw/*.fits \
+ingestPfsImages.py $TARGET --mode=link \
+    $drp_stella_data/raw/PFFA*.fits \
     -c clobber=True register.ignore=True
 
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
-		$OBS_PFS_DIR/pfs/camera/pfsDetectorMap-005833-r1.fits --mode=copy || exit 1
+		$drp_stella_data/raw/detectorMap-sim-1-r.fits --mode=copy || exit 1
 
 # Build bias
-constructBias.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=3140..3149 $batchArgs || exit 1
+constructBias.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/bias --id field=BIAS $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/calib/BIAS/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
+		    $TARGET/rerun/$RERUN/bias/BIAS/*.fits || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/bias) || true
 
 # Build dark
-constructDark.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib --id visit=3154..3158 $batchArgs || exit 1
+constructDark.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/dark --id field=DARK $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/calib/DARK/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
+		    $TARGET/rerun/$RERUN/dark/DARK/*.fits || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/dark) || true
 
 # Build flat
-constructFiberFlat.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib \
-            --id visit=5699..5753:9^5768..5813:9^5822 $batchArgs || exit 1
+constructFiberFlat.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/flat \
+            --id field=FLAT $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/calib/FLAT/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib) || true
+		    $TARGET/rerun/$RERUN/flat/FLAT/*.fits || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/flat) || true
 
 # Build fiber trace
-constructFiberTrace.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/calib \
-		       --id visit=5694 $batchArgs || exit 1
-sqlite3 $TARGET/CALIB/calibRegistry.sqlite3 "delete from detectormap where visit0=$(echo pfsDetectorMap-005833-r1.fits | perl -ne '/pfsDetectorMap-0*([^-]+)-/; print $1');"
+constructFiberTrace.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/fiberTrace \
+		       --id visit=20 $batchArgs || exit 1
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/calib/{FIBERTRACE,DETECTORMAP}/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/calib ) || true
+		    $TARGET/rerun/$RERUN/fiberTrace/FIBERTRACE/*.fits || exit 1
+( $CLEANUP && rm -r $TARGET/rerun/$RERUN/fiberTrace ) || true
 
 # Process arc
-reduceArc.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id visit=5830^5825 -j $CORES || exit 1
-# Read arc
-python -c "
-from lsst.daf.persistence import Butler
-butler = Butler(\"${TARGET}/rerun/${RERUN}/arc\")
-arc = butler.get(\"pfsArm\", visit=5825, arm=\"r\", spectrograph=1)
-print(arc.lam)
-print(arc.flux)
-" || exit 1
+reduceArc.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id field=ARC -j $CORES || exit 1
+sqlite3 $TARGET/CALIB/calibRegistry.sqlite3 'DELETE FROM detectormap; DELETE FROM detectormap_visit'
+ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
+             $TARGET/rerun/$RERUN/arc/DETECTORMAP/*.fits --config clobber=True || exit 1
 ( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
 
 # Detrend only
-detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=5830
+detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=33 || exit 1
+
+# End-to-end pipeline
+reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
+mergeArms.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
+calculateReferenceFlux.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
+fluxCalibrate.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
+coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
+
+python -c "
+from lsst.daf.persistence import Butler
+butler = Butler(\"${TARGET}/rerun/${RERUN}/pipeline\")
+spectrum = butler.get(\"pfsCoadd\", catId=7, tract=0, patch=\"0,0\", objId=3, numExp=2, expHash=0x174de2af)
+print(spectrum.flux[spectrum.mask == 0].sum())
+" || exit 1
 
 echo "Done."
