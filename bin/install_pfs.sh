@@ -67,8 +67,8 @@ cd $PREFIX
 
 # Install LSST
 lsst_args=""
-[ -n "$PACKAGES" ] && lsst_args+=" -p \"$PACKAGES\""
-[ -n "$LSST_VERSION" ] && lsst_args+=" -L \"$LSST_VERSION\""
+[ -n "$PACKAGES" ] && lsst_args+=" -p ""$PACKAGES"""
+[ -n "$LSST_VERSION" ] && lsst_args+=" -L $LSST_VERSION"
 bash $HERE/bin/install_lsst.sh ${lsst_args}
 
 # Setup LSST
