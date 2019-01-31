@@ -72,6 +72,7 @@ lsst_args=""
 bash $HERE/bin/install_lsst.sh ${lsst_args}
 
 # Setup LSST
+source loadLSST.bash
 setup_args=""
 [ -n "$LSST_VERSION" ] && setup_args+="-t $LSST_VERSION"
 setup pipe_drivers ${setup_args}
