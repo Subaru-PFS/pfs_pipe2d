@@ -169,7 +169,7 @@ coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field
 python -c "
 from lsst.daf.persistence import Butler
 butler = Butler(\"${TARGET}/rerun/${RERUN}/pipeline\")
-spectrum = butler.get(\"pfsCoadd\", catId=7, tract=0, patch=\"0,0\", objId=3, numExp=2, expHash=0x174de2af)
+spectrum = butler.get(\"pfsCoadd\", catId=7, tract=0, patch=\"0,0\", objId=3, numExp=4, expHash=0x1eab2e92)
 print(spectrum.flux[spectrum.mask == 0].sum())
 " || exit 1
 
