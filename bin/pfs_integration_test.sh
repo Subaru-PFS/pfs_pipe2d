@@ -123,38 +123,16 @@ ingestPfsImages.py $TARGET --mode=link \
 ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
 		$drp_stella_data/raw/detectorMap-sim-*.fits --mode=copy || exit 1
 
-# Build bias
-constructBias.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/bias --id field=BIAS $batchArgs || exit 1
-ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/bias/BIAS/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/bias) || true
-
-# Build dark
-constructDark.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/dark --id field=DARK $batchArgs || exit 1
-ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/dark/DARK/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/dark) || true
-
-# Build flat
-constructFiberFlat.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/flat \
-            --id field=FLAT $batchArgs || exit 1
-ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/flat/FLAT/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/flat) || true
-
-# Build fiber trace
-constructFiberTrace.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/fiberTrace \
-		       --id visit=20 $batchArgs || exit 1
-ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-		    $TARGET/rerun/$RERUN/fiberTrace/FIBERTRACE/*.fits || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/fiberTrace ) || true
-
-# Process arc
-reduceArc.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/arc --id field=ARC -j $CORES || exit 1
-sqlite3 $TARGET/CALIB/calibRegistry.sqlite3 'DELETE FROM detectormap; DELETE FROM detectormap_visit'
-ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1000 \
-             $TARGET/rerun/$RERUN/arc/DETECTORMAP/*.fits --config clobber=True || exit 1
-( $CLEANUP && rm -r $TARGET/rerun/$RERUN/arc ) || true
+# Build calibs
+calibsArgs=
+( ! $CLEANUP && calibsArgs="-n" ) || true
+pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
+    -b "field=BIAS" \
+    -d "field=DARK" \
+    -f "field=FLAT" \
+    -F "visit=20" \
+    -a "field=ARC" \
+    $TARGET
 
 # Detrend only
 detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=33 || exit 1
