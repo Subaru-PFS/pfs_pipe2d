@@ -99,33 +99,33 @@ set -evx
 
 # Build bias
 constructBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY \
+ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 		    $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
 
 # Build dark
 constructDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY \
+ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 		    $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
 
 # Build flat
 constructFiberFlat.py $REPO --calib $CALIB --rerun $RERUN/flat \
             --id $FLATS $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY \
+ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 		    $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
 
 # Build fiber trace
 constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
 		       --id $FIBERTRACES $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY \
+ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 		    $REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/*.fits || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace ) || true
 
 # Process arc
 reduceArc.py $REPO --calib $CALIB --rerun $RERUN/arc --id $ARCS -j $CORES || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY \
+ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
              $REPO/rerun/$RERUN/arc/DETECTORMAP/*.fits \
              -c clobber=True register.ignore=True || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/arc ) || true
