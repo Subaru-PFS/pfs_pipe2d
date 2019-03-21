@@ -16,7 +16,7 @@ VALIDITY=1000  # Validity period (days)
 usage() {
     echo "Build calibs, given a set of biases, darks, flats and arcs" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] -b <BIASES> -d <DARKS> -f <FLATS> -F <FIBERTRACE> -a <ARCS> <REPO>" 1>&2
+    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] -b <BIASES> -d <DARKS> -f <FLATS> -F <FIBERTRACE> [-a <ARCS>] <REPO>" 1>&2
     echo "" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: '${RERUN}')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: ${CORES})" 1>&2
@@ -83,7 +83,7 @@ REPO=$1  # Data repository directory
 if [ -z "$REPO" ] || [ -n "$2" ]; then
     usage
 fi
-if [ -z "$BIASES" ] || [ -z "$DARKS" ] || [ -z "$FLATS" ] || [ -z "$FIBERTRACES" ] || [ -z "$ARCS" ]; then
+if [ -z "$BIASES" ] || [ -z "$DARKS" ] || [ -z "$FLATS" ] || [ -z "$FIBERTRACES" ]; then
     usage
 fi
 [ -z "$CALIB" ] && CALIB=${REPO}/CALIB
@@ -124,8 +124,10 @@ ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace ) || true
 
 # Process arc
-reduceArc.py $REPO --calib $CALIB --rerun $RERUN/arc --id $ARCS -j $CORES || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-             $REPO/rerun/$RERUN/arc/DETECTORMAP/*.fits \
-             -c clobber=True register.ignore=True || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/arc ) || true
+if [ -z "$ARCS" ]; then
+    reduceArc.py $REPO --calib $CALIB --rerun $RERUN/arc --id $ARCS -j $CORES || exit 1
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/arc/DETECTORMAP/*.fits \
+                -c clobber=True register.ignore=True || exit 1
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/arc ) || true
+fi
