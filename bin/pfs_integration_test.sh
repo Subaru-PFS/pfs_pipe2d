@@ -125,7 +125,9 @@ ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
 
 # Build calibs
 calibsArgs=
-( ! $CLEANUP && calibsArgs="-n" ) || true
+if ( ! $CLEANUP ); then
+    calibsArgs="-n"
+fi
 pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
     -b "field=BIAS" \
     -d "field=DARK" \
