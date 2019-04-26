@@ -11,8 +11,6 @@ if [ $(uname -s) = Darwin ]; then
     fi
 fi
 
-set -evx
-
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
     echo "" 1>&2
@@ -67,6 +65,8 @@ PREFIX=$1  # Directory to work in
 if [ -z "$PREFIX" ] || [ -n "$2" ]; then
     usage
 fi
+
+set -evx
 
 mkdir -p $PREFIX
 cd $PREFIX
