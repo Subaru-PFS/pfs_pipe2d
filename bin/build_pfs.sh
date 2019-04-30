@@ -28,14 +28,13 @@ build_package () {
     local tag=$3  # Tag to apply
     local repoName=$(basename $repo)
 
-    ( curl -Lfk https://api.github.com/repos/$repo/tarball/$commit || curl -Lfk https://api.github.com/repos/$repo/tarball/master ) > ${repoName}.tar.gz
-    tar xvzf ${repoName}.tar.gz
-    local repoDir=$(tar -tzf ${repoName}.tar.gz | head -1 | cut -f1 -d"/")
+    local repoDir=$(basename $repo)
+    ( git clone --branch=$commit --single-branch https://github.com/$repo $repoDir || git clone --branch=master --single-branch https://github.com/$repo $repoDir )
     pushd ${repoDir}
 
     setup -k -r .
     scons
-    version=$(echo $commit | sed 's|[/-]|_|')
+    version=$(git describe --tags --always | sed 's|/|_|g')
     scons_args=" version=$version"
     [ -n "$tag" ] && scons_args+=" --tag=$tag"
     scons install declare ${scons_args}
