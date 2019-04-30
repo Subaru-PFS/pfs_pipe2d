@@ -124,7 +124,7 @@ ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace ) || true
 
 # Process arc
-if [ -z "$ARCS" ]; then
+if [ -n "$ARCS" ]; then
     reduceArc.py $REPO --calib $CALIB --rerun $RERUN/arc --id $ARCS -j $CORES || exit 1
     ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/arc/DETECTORMAP/*.fits \
