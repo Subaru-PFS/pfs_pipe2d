@@ -31,48 +31,42 @@ LABEL description="Subaru PFS 2D pipeline plus instrument control" \
       name="pfs_icsdrp"
 
 ARG DEVTOOLSET=6
-ARG LSST_DIR=/opt/lsst/software/stack
-ARG PFS_DIR=/opt/pfs
+ARG PFS_DIR=/home/pfs
+ARG STACK_DIR=/opt/pfs
 
 ENV OMP_NUM_THREADS=1
 ENV SCONSFLAGS="-j 4"
 
 # Make our world PFS-compatible:
-#   user pfs, uid 1000:1000
-#   user pfs-data, uid 1001:1001
+#   user pfs, uid 2085,2085
+#   user pfs-data, uid 2087,2087, writes /data files as group pfs
 #   accessible dirs
 #
 USER root
-RUN useradd -m -s /bin/bash -u 1001 -U -G 1000 pfs-data && \
-    groupmod -n pfs lsst && \
-    usermod -l pfs -m -d /home/pfs lsst && \
-    chmod 0755 /home/pfs
+#RUN useradd -m -s /bin/bash -u 2085 -U -G 2085 pfs-data && \
+#    groupmod -n pfs lsst && \
+#    usermod -l pfs -m -d /home/pfs lsst && \
+#    chmod 0755 /home/pfs
 RUN yum -y install iproute nmap-ncat \
  && yum clean all -y
 
 USER pfs
 WORKDIR ${PFS_DIR}
-RUN . ${LSST_DIR}/loadLSST.bash \
- && setup lsst_distrib \
+RUN . ${STACK_DIR}/loadLSST.bash \
+ && setup pfs_pipe2d \
  && export -f setup \
  && . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
- && conda install twisted ply ipython jupyter
+ && conda install twisted ply ipython jupyter jupyterlab
 
-# This is disgusting. Figure out something cleaner.
-#
 USER pfs
 WORKDIR /home/pfs
 RUN echo 'umask 2' >> .bashrc
 
-RUN . ${LSST_DIR}/loadLSST.bash \
-    && echo '_PDIR=$(which python | sed "s:bin/python:lib/python3.6/site-packages:")' >> .bashrc
-
 RUN echo ' \
-PYTHONPATH=$PYTHONPATH:$_PDIR:/software/conda/lib/python3.6/site-packages; \
 EUPS_PATH=$EUPS_PATH:/software/mhs/products; \
 setup ics_drpActor' >> .bashrc
 
-RUN . ${LSST_DIR}/loadLSST.bash \
+RUN . ${STACK_DIR}/loadLSST.bash \
     && eups admin buildCache
 
 CMD /bin/bash
