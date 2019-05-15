@@ -1,33 +1,33 @@
 #!/bin/bash
 
-WORKDIR=/scratch/pprice/jenkins
-STACK=/scratch/price/jenkins/stack
-HERE=$(pwd)
+HERE=$(pwd)  # Starting directory (where the package is checked out)
+WORKDIR=/scratch/pprice/jenkins  # Working directory
+STACK=$WORKDIR/stack  # Stack directory
+DISTRIB=$WORKDIR/distrib  # Distribution directory
+export SCONSFLAGS="-j 4"
+
+. /etc/profile
+module load rh/devtoolset/6
 
 set -ev
 
-# What's the tag to build?
-echo --------------------------------
-echo HOSTNAME=$HOSTNAME
-echo HOME=$HOME
-echo USER=$USER
-echo TERM=$TERM
-echo CHANGE_ID=$CHANGE_ID
-echo CHANGE_TARGET=$CHANGE_TARGET
-echo WORKSPACE=$WORKSPACE
-echo JENKINS_HOME=$JENKINS_HOME
-echo HERE=$HERE
-echo EUPS_PATH=$EUPS_PATH
-echo GIT_BRANCH=$GIT_BRANCH
-echo GIT_LOCAL_BRANCH=$GIT_LOCAL_BRANCH
-echo GIT_COMMIT=$GIT_COMMIT
-echo BRANCH_NAME=$BRANCH_NAME
-echo --------------------------------
+GIT_TAG=$(echo "$GIT_BRANCH" | sed 's|^.*/tags/||')  # Tag to build
+VERSION=$(echo "$GIT_TAG" | sed 's|[/ ]|_|g')  # Version to call it
+BUILD=$WORKDIR/build/$VERSION/$(date '+%Y%m%dT%H%M%S')  # Build directory
+
+echo GIT_TAG=$GIT_TAG
+echo VERSION=$VERSION
+echo BUILD=$BUILD
+
 env
-echo --------------------------------
-unsetup eups
+
+mkdir -p $BUILD
+pushd $BUILD
+
 . $STACK/loadLSST.bash
-env
-echo --------------------------------
-#cd $WORKDIR
-#$HERE/bin/
+"$HERE"/bin/build_pfs.sh -b "$GIT_TAG" -v "$VERSION" -t current
+eups distrib create --server-dir=$DISTRIB -S REPOSITORY_PATH='git://github.com/Subaru-PFS/$PRODUCT.git' -f generic -d eupspkg pfs_pipe2d $VERSION
+eups distrib create --server-dir=$DISTRIB -d tarball pfs_pipe2d $VERSION
+
+popd
+rm -rf $BUILD
