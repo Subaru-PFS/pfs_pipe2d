@@ -6,12 +6,11 @@ usage() {
     echo "" 1>&2
     echo "Requires that the LSST pipeline has already been installed and setup." 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-b <BRANCH>] [-l] [-t TAG] [-v VERSION]" 1>&2
+    echo "Usage: $0 [-b <BRANCH>] [-l] [-t TAG]" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : name of branch on PFS to install" 1>&2
     echo "    -l : limited install (w/o drp_stella, pfs_pipe2d)" 1>&2
     echo "    -t : tag name to apply" 1>&2
-    echo "    -v : version name to apply" 1>&2
     echo "" 1>&2
     exit 1
 }
@@ -26,21 +25,22 @@ build_package () {
     # Build a package from git, optionally checking out a particular version
     local repo=$1  # Repository on GitHub (without the leading "git://github.com/")
     local commit=$2  # Commit/branch to checkout
-    local version=$3  # Version name to apply
-    local tag=$4  # Tag to apply
+    local tag=$3  # Tag to apply
     local repoName=$(basename $repo)
 
     local repoDir=$(basename $repo)
     ( git clone --branch=$commit --single-branch https://github.com/$repo $repoDir || git clone --branch=master --single-branch https://github.com/$repo $repoDir )
     pushd ${repoDir}
 
-    if [ -z "$version" ]; then
-        version=$(git_version)
+    version=$(git_version)
+    if [ $(eups list $repoName $version) ]; then
+        local build=1
+        while [ $(eups list $repoName ${version}+$build) ]; do build=$((build+1)); done
+        version="${version}+$build"
     fi
-    eups list $repoName $version && ( echo "Found existing build of ${repoName} ${version}; refusing to clobber, exiting build" && exit 1 )
+    echo Building version ${version}...
 
     setup -k -r .
-    scons_args=" version=$version"
     [ -n "$tag" ] && scons_args+=" --tag=$tag"
     scons install declare ${scons_args}
 
@@ -85,10 +85,10 @@ eval $("$EUPS_DIR/bin/eups_setup" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups 
 
 setup sconsUtils
 
-build_package Subaru-PFS/datamodel $BRANCH "$VERSION" "$TAG"
-build_package Subaru-PFS/obs_pfs $BRANCH "$VERSION" "$TAG"
+build_package Subaru-PFS/datamodel $BRANCH "$TAG"
+build_package Subaru-PFS/obs_pfs $BRANCH "$TAG"
 
 if [ "$LIMITED" = false ]; then
-    build_package Subaru-PFS/drp_stella $BRANCH "$VERSION" "$TAG"
-    build_package Subaru-PFS/pfs_pipe2d $BRANCH "$VERSION" "$TAG"
+    build_package Subaru-PFS/drp_stella $BRANCH "$TAG"
+    build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
 fi
