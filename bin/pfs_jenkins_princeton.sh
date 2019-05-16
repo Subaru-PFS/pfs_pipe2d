@@ -1,33 +1,35 @@
 #!/bin/bash
 
+# Configuration parameters
 HERE=$(pwd)  # Starting directory (where the package is checked out)
 WORKDIR=/scratch/pprice/jenkins  # Working directory
 STACK=$WORKDIR/stack  # Stack directory
 DISTRIB=$WORKDIR/distrib  # Distribution directory
-export SCONSFLAGS="-j 4"
+export SCONSFLAGS="-j 4"  # SCons build flags
 
-. /etc/profile
-module load rh/devtoolset/6
+# Need these on tiger to get the right environment
+. /etc/profile  # Get "module"
+module load rh/devtoolset/6  # Get modern compiler
 
 set -ev
 
+# Set parameters from Jenkins envvars
 GIT_TAG=$(echo "$GIT_BRANCH" | sed 's|^.*/tags/||')  # Tag to build
 VERSION=$(echo "$GIT_TAG" | sed 's|[/ ]|_|g')  # Version to call it
 BUILD=$WORKDIR/build/$VERSION/$(date '+%Y%m%dT%H%M%S')  # Build directory
-
-echo GIT_TAG=$GIT_TAG
-echo VERSION=$VERSION
-echo BUILD=$BUILD
-
 env
 
 mkdir -p $BUILD
 pushd $BUILD
 
+# Build the stack
 . $STACK/loadLSST.bash
 "$HERE"/bin/build_pfs.sh -b "$GIT_TAG" -t current
+
+# Build the distribution
 eups distrib create --server-dir=$DISTRIB -S REPOSITORY_PATH='git://github.com/Subaru-PFS/$PRODUCT.git' -f generic -d eupspkg pfs_pipe2d $VERSION
 eups distrib create --server-dir=$DISTRIB -d tarball pfs_pipe2d $VERSION
 
+# Clean up
 popd
 rm -rf $BUILD
