@@ -25,7 +25,7 @@ mkdir -p $BUILD
 pushd $BUILD
 
 . $STACK/loadLSST.bash
-"$HERE"/bin/build_pfs.sh -b "$GIT_TAG" -v "$VERSION" -t current
+"$HERE"/bin/build_pfs.sh -b "$GIT_TAG" -t current
 eups distrib create --server-dir=$DISTRIB -S REPOSITORY_PATH='git://github.com/Subaru-PFS/$PRODUCT.git' -f generic -d eupspkg pfs_pipe2d $VERSION
 eups distrib create --server-dir=$DISTRIB -d tarball pfs_pipe2d $VERSION
 
