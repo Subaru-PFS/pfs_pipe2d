@@ -33,9 +33,9 @@ build_package () {
     pushd ${repoDir}
 
     version=$(git_version)
-    if $(eups list $repoName $version); then
+    if eups list $repoName $version; then
         local build=1
-        while $(eups list $repoName ${version}+$build); do build=$((build+1)); done
+        while eups list $repoName ${version}+$build; do build=$((build+1)); done
         version="${version}+$build"
     fi
     echo Building version ${version}...
