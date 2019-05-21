@@ -27,6 +27,7 @@ install_lsst () {
     local version=$1  # LSST version to install
     local packages=$2  # Space-delimited list of packages
     unset EUPS_DIR EUPS_PATH EUPS_PKGROOT EUPS_SHELL SETUP_EUPS
+    unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
     curl -OL https://raw.githubusercontent.com/lsst/lsst/16.0/scripts/newinstall.sh
     bash newinstall.sh -bct
     source loadLSST.bash

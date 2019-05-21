@@ -18,7 +18,7 @@ usage() {
 git_version () {
     [ -e ".git" ] || ( echo "Not a git repo" && exit 1 )
     [ -z $(git status --porcelain --untracked-files=no) ] || ( echo "Git repo not clean" && exit 1 )
-    git describe --tags --always
+    git describe --tags --always | sed 's|/|_|g'
 }
 
 build_package () {
@@ -32,9 +32,16 @@ build_package () {
     ( git clone --branch=$commit --single-branch https://github.com/$repo $repoDir || git clone --branch=master --single-branch https://github.com/$repo $repoDir )
     pushd ${repoDir}
 
+    version=$(git_version)
+    if eups list $repoName $version; then
+        local build=1
+        while eups list $repoName ${version}+$build; do build=$((build+1)); done
+        version="${version}+$build"
+    fi
+    echo Building version ${version}...
+
     setup -k -r .
     scons
-    version=$(git describe --tags --always | sed 's|/|_|g')
     scons_args=" version=$version"
     [ -n "$tag" ] && scons_args+=" --tag=$tag"
     scons install declare ${scons_args}
@@ -76,10 +83,10 @@ eval $("$EUPS_DIR/bin/eups_setup" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups 
 
 setup sconsUtils
 
-build_package Subaru-PFS/datamodel $BRANCH $TAG
-build_package Subaru-PFS/obs_pfs $BRANCH $TAG
+build_package Subaru-PFS/datamodel $BRANCH "$TAG"
+build_package Subaru-PFS/obs_pfs $BRANCH "$TAG"
 
 if [ "$LIMITED" = false ]; then
-    build_package Subaru-PFS/drp_stella $BRANCH $TAG
-    build_package Subaru-PFS/pfs_pipe2d $BRANCH $TAG
+    build_package Subaru-PFS/drp_stella $BRANCH "$TAG"
+    build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
 fi
