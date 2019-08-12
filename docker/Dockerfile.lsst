@@ -4,7 +4,7 @@ MAINTAINER paprice
 LABEL description="LSST packages for Subaru PFS 2D pipeline" \
       name="paprice/pfs_lsst"
 
-ARG DEVTOOLSET=6
+ARG DEVTOOLSET=8
 ARG INSTALL_ARGS
 ARG INSTALL_DIR=/opt/pfs
 
@@ -15,7 +15,7 @@ SHELL ["/bin/bash", "-c"]
 
 USER root
 
-# Upgrade compiler using devtoolset-6
+# Upgrade compiler using devtoolset-8
 RUN yum -y update \
  && yum install -y centos-release-scl \
  && yum install -y \

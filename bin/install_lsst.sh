@@ -28,7 +28,7 @@ install_lsst () {
     local packages=$2  # Space-delimited list of packages
     unset EUPS_DIR EUPS_PATH EUPS_PKGROOT EUPS_SHELL SETUP_EUPS
     unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
-    curl -OL https://raw.githubusercontent.com/lsst/lsst/16.0/scripts/newinstall.sh
+    curl -OL https://raw.githubusercontent.com/lsst/lsst/18.1.0/scripts/newinstall.sh
     bash newinstall.sh -bct
     source loadLSST.bash
 
@@ -45,7 +45,7 @@ install_lsst () {
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
-LSST_VERSION=v16_0
+LSST_VERSION=v18_1_0
 PACKAGES="pipe_drivers display_ds9 display_matplotlib"
 TAG=
 while getopts ":e:hL:p:" opt; do
