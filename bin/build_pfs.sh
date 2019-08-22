@@ -84,6 +84,7 @@ eval $("$EUPS_DIR/bin/eups_setup" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups 
 setup sconsUtils
 
 build_package Subaru-PFS/datamodel $BRANCH "$TAG"
+build_package Subaru-PFS/pfs_utils $BRANCH "$TAG"
 build_package Subaru-PFS/obs_pfs $BRANCH "$TAG"
 
 if [ "$LIMITED" = false ]; then
