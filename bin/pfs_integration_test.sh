@@ -137,7 +137,7 @@ pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
     $TARGET
 
 # Detrend only
-detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=33 || exit 1
+detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=55 || exit 1
 
 # End-to-end pipeline
 reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
@@ -149,7 +149,7 @@ coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field
 python -c "
 from lsst.daf.persistence import Butler
 butler = Butler(\"${TARGET}/rerun/${RERUN}/pipeline\")
-spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=0x5d, nVisit=4, pfsVisitHash=0x42cfc4af8cc94582)
+spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=0x5d, nVisit=4, pfsVisitHash=0x790f37d6f6f8584f)
 print(spectrum.flux[spectrum.mask == 0].sum())
 " || exit 1
 
