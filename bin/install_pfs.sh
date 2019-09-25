@@ -29,7 +29,7 @@ usage() {
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
-LSST_VERSION=v16_0
+LSST_VERSION=v18_1_0
 PACKAGES=
 TAG=
 while getopts ":b:eh$L:p:t:" opt; do
