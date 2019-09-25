@@ -98,13 +98,13 @@ export OMP_NUM_THREADS=1
 set -evx
 
 # Build bias
-constructBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
+constructPfsBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
 ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 		    $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
 
 # Build dark
-constructDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
+constructPfsDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
 ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 		    $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
