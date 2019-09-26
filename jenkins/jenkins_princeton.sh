@@ -3,7 +3,7 @@
 # Configuration parameters
 HERE=$(pwd)  # Starting directory (where the package is checked out)
 WORKDIR=/scratch/pprice/jenkins  # Working directory
-STACK=/tigress/HSC/PFS/stack/  # Stack directory
+STACK=/tigress/HSC/PFS/stack/current  # Stack directory
 DISTRIB=/tigress/HSC/PFS/distrib  # Distribution directory
 export SCONSFLAGS="-j 4"  # SCons build flags
 
