@@ -16,7 +16,7 @@ RUN yum install -y libXft gdb valgrind libatomic libunwind libunwind-devel cmake
  && yum clean all -y
 
 RUN cd /opt/pfs \
- && . /opt/rh/devtoolset-6/enable \
+ && . /opt/rh/devtoolset-8/enable \
  && curl -Lf https://api.github.com/repos/PaulPrice/igprof/tarball/price/20180315 > igprof.tar.gz \
  && tar xvzf igprof.tar.gz \
  && cd $(tar -tzf igprof.tar.gz | head -1 | cut -f1 -d"/") \
