@@ -14,7 +14,7 @@ module load rh/devtoolset/6  # Get modern compiler
 set -ev
 
 # Set parameters from Jenkins envvars
-GIT_TAG=$(echo "$GIT_BRANCH" | sed 's|^.*/tags/||')  # Tag to build
+GIT_TAG=$(git describe --tags --always)  # Tag to build
 VERSION=$(echo "$GIT_TAG" | sed 's|[/ ]|_|g')  # Version to call it
 BUILD=$WORKDIR/build/$VERSION/$(date '+%Y%m%dT%H%M%S')  # Build directory
 env
