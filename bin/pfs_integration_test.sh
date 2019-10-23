@@ -99,15 +99,7 @@ else
 fi
 
 export OMP_NUM_THREADS=1
-
-#
-# Look for the data files
-#
-if [ -d drp_stella_data ]; then
-    drp_stella_data=drp_stella_data
-else
-    drp_stella_data=$(find . -name PFLA00583012.fits | xargs dirname | xargs dirname)
-fi
+drp_stella_data=${DRP_STELLA_DATA_DIR:-drp_stella_data}
 
 # Construct repo
 rm -rf $TARGET
