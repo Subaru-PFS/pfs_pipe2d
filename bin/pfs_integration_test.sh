@@ -132,7 +132,7 @@ pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
     -b "field=BIAS" \
     -d "field=DARK" \
     -f "field=FLAT" \
-    -F "visit=20" \
+    -F "field=FLAT_ODD" -F "field=FLAT_EVEN" \
     -a "field=ARC" \
     $TARGET
 
