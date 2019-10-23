@@ -16,7 +16,7 @@ VALIDITY=1000  # Validity period (days)
 usage() {
     echo "Build calibs, given a set of biases, darks, flats and arcs" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] -b <BIASES> -d <DARKS> -f <FLATS> -F <FIBERTRACE> [-a <ARCS>] <REPO>" 1>&2
+    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] [-b <BIASES>] [-d <DARKS>] [-f <FLATS>] [-F <FIBERTRACE>] [-a <ARCS>] <REPO>" 1>&2
     echo "" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: '${RERUN}')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: ${CORES})" 1>&2
@@ -83,7 +83,7 @@ REPO=$1  # Data repository directory
 if [ -z "$REPO" ] || [ -n "$2" ]; then
     usage
 fi
-if [ -z "$BIASES" ] || [ -z "$DARKS" ] || [ -z "$FLATS" ] || [ -z "$FIBERTRACES" ]; then
+if [ -z "$BIASES" ] && [ -z "$DARKS" ] && [ -z "$FLATS" ] && [ -z "$FIBERTRACES" ] && [ -z "$ARCS" ]; then
     usage
 fi
 [ -z "$CALIB" ] && CALIB=${REPO}/CALIB
@@ -98,23 +98,29 @@ export OMP_NUM_THREADS=1
 set -evx
 
 # Build bias
-constructPfsBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
+if [ -n "$BIASES" ]; then
+    constructPfsBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
+fi
 
 # Build dark
-constructPfsDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
+if [ -n "$DARKS" ]; then
+    constructPfsDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
+fi
 
 # Build flat
-constructFiberFlat.py $REPO --calib $CALIB --rerun $RERUN/flat \
-            --id $FLATS $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
+if [ -n "$FLATS" ]; then
+    constructFiberFlat.py $REPO --calib $CALIB --rerun $RERUN/flat \
+                --id $FLATS $batchArgs || exit 1
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
+fi
 
 # Build fiber traces
 for ff in "${FIBERTRACES[@]}"; do
