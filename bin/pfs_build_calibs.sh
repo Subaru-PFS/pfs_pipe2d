@@ -26,7 +26,7 @@ usage() {
     echo "    -b <BIASES> : identifier set for biases" 1>&2
     echo "    -d <DARKS> : identifier set for darks" 1>&2
     echo "    -f <FLATS> : identifier set for flats" 1>&2
-    echo "    -F <FIBERTRACE> : identifier set for fiberTrace" 1>&2
+    echo "    -F <FIBERTRACE> : identifier set for fiberTrace (multiple ok)" 1>&2
     echo "    -a <ARCS> : identifier set for arcs" 1>&2
     echo "    <REPO> : data repository directory" 1>&2
     echo "" 1>&2
@@ -38,7 +38,7 @@ CLEANUP=true  # Clean temporary products?
 BIASES=
 DARKS=
 FLATS=
-FIBERTRACES=
+FIBERTRACES=()
 ARCS=
 while getopts ":r:c:C:nv:b:d:f:F:a:" opt; do
     case "${opt}" in
@@ -67,7 +67,7 @@ while getopts ":r:c:C:nv:b:d:f:F:a:" opt; do
             FLATS=${OPTARG}
             ;;
         F)
-            FIBERTRACES=${OPTARG}
+            FIBERTRACES+=(${OPTARG})
             ;;
         a)
             ARCS=${OPTARG}
@@ -116,12 +116,26 @@ ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
 		    $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
 ( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
 
-# Build fiber trace
-constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
-		       --id $FIBERTRACES $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace ) || true
+# Build fiber traces
+for ff in "${FIBERTRACES[@]}"; do
+    constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
+                --id $ff $batchArgs || exit 1
+done
+shopt -s nullglob
+for detector in b1 r1; do
+    traces=($REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/pfsFiberTrace-*-${detector}.fits)
+    if (( ${#traces[@]} == 0 )); then
+        echo "No traces for detector ${detector}."
+        continue
+    fi
+    mkdir -p $REPO/rerun/$RERUN/fiberTrace-combined/
+    combineFiberTraces.py $REPO/rerun/$RERUN/fiberTrace-combined/$(basename ${traces[0]}) ${traces[*]}
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+		    $REPO/rerun/$RERUN/fiberTrace-combined/pfsFiberTrace-*-${detector}.fits || exit 1
+done
+if (( ${#FIBERTRACES[@]} > 0 )); then
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace $REPO/rerun/$RERUN/fiberTrace-combined ) || true
+fi
 
 # Process arc
 if [ -n "$ARCS" ]; then
