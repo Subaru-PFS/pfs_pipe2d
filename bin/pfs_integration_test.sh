@@ -14,7 +14,7 @@ fi
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] <PREFIX>" 1>&2
+    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] [-C] <PREFIX>" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : branch of drp_stella_data to use" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: 'integration')" 1>&2
@@ -22,6 +22,7 @@ usage() {
     echo "    -c <CORES> : number of cores to use (default: 1)" 1>&2
     echo "    -G : don't clone or update from git" 1>&2
     echo "    -n : don't cleanup temporary products" 1>&2
+    echo "    -C : don't create calibs" 1>&2
     echo "    <PREFIX> : directory under which to operate" 1>&2
     echo "" 1>&2
     exit 1
@@ -34,13 +35,17 @@ TARGET="INTEGRATION"  # Directory name to give data repo
 CORES=1  # Number of cores to use
 USE_GIT=true # checkout/update from git
 CLEANUP=true  # Clean temporary products?
-while getopts ":b:c:d:Gnr:" opt; do
+BUILD_CALIBS=true  # Build calibs?
+while getopts ":b:c:Cd:Gnr:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
             ;;
         c)
             CORES=${OPTARG}
+            ;;
+        C)
+            BUILD_CALIBS=false
             ;;
         d)
             TARGET=${OPTARG}
@@ -101,32 +106,34 @@ fi
 export OMP_NUM_THREADS=1
 drp_stella_data=${DRP_STELLA_DATA_DIR:-drp_stella_data}
 
-# Construct repo
-rm -rf $TARGET
-mkdir -p $TARGET
-mkdir -p $TARGET/CALIB
-[ -e $TARGET/_mapper ] || echo "lsst.obs.pfs.PfsMapper" > $TARGET/_mapper
+if ( $BUILD_CALIBS ); then
+    # Construct repo
+    rm -rf $TARGET
+    mkdir -p $TARGET
+    mkdir -p $TARGET/CALIB
+    [ -e $TARGET/_mapper ] || echo "lsst.obs.pfs.PfsMapper" > $TARGET/_mapper
 
-# Ingest images into repo
-ingestPfsImages.py $TARGET --mode=link \
-    $drp_stella_data/raw/PFFA*.fits \
-    -c clobber=True register.ignore=True
+    # Ingest images into repo
+    ingestPfsImages.py $TARGET --mode=link \
+        $drp_stella_data/raw/PFFA*.fits \
+        -c clobber=True register.ignore=True
 
-ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
-		$drp_stella_data/raw/detectorMap-sim-*.fits --mode=copy || exit 1
+    ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
+            $drp_stella_data/raw/detectorMap-sim-*.fits --mode=copy || exit 1
 
-# Build calibs
-calibsArgs=
-if ( ! $CLEANUP ); then
-    calibsArgs="-n"
+    # Build calibs
+    calibsArgs=
+    if ( ! $CLEANUP ); then
+        calibsArgs="-n"
+    fi
+    pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
+        -b "field=BIAS" \
+        -d "field=DARK" \
+        -f "field=FLAT" \
+        -F "field=FLAT_ODD" -F "field=FLAT_EVEN" \
+        -a "field=ARC" \
+        $TARGET
 fi
-pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
-    -b "field=BIAS" \
-    -d "field=DARK" \
-    -f "field=FLAT" \
-    -F "field=FLAT_ODD" -F "field=FLAT_EVEN" \
-    -a "field=ARC" \
-    $TARGET
 
 # Detrend only
 detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=55 || exit 1
