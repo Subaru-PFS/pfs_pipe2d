@@ -20,7 +20,9 @@ lsst:	Dockerfile.lsst bin/install_lsst.sh
 #
 # Always fires, by virtue of .PHONY (for make) and FORCE argument (for docker)
 pipe2d:	Dockerfile.pipe2d bin/build_pfs.sh
-	docker build -t paprice/pfs_pipe2d:$(TAG) -f Dockerfile.pipe2d --build-arg INSTALL_ARGS="-b $(PFS_BRANCH)" --build-arg VERSION=$(TAG) --build-arg FORCE=$$(date +%s) .
+	docker build -t paprice/pfs_pipe2d:$(TAG) -f Dockerfile.pipe2d \
+	        --build-arg INSTALL_ARGS="-b $(PFS_BRANCH)" --build-arg VERSION=$(TAG) \
+	        --build-arg FORCE=$$(date +%s) --build-arg UID=$(id -u) --build-arg GID=$(id -g) .
 
 # PFS 2D pipeline with debugging tools
 pipe2d_debug: Dockerfile.pipe2d_debug

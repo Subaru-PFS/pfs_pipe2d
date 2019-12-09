@@ -7,6 +7,8 @@ LABEL description="LSST packages for Subaru PFS 2D pipeline" \
 ARG DEVTOOLSET=8
 ARG INSTALL_ARGS
 ARG INSTALL_DIR=/opt/pfs
+ARG UID=1000
+ARG GID=1000
 
 ENV OMP_NUM_THREADS=1
 ENV SCONSFLAGS="-j 4"
@@ -41,7 +43,8 @@ RUN yum -y update \
 RUN yum install -y screen tree \
  && yum clean all -y
 
-RUN useradd -m pfs
+RUN groupadd -g $GID -o pfs
+RUN useradd -u $UID -g $GID -m pfs
 RUN mkdir -p ${INSTALL_DIR} && chown pfs:pfs ${INSTALL_DIR}
 
 USER pfs
