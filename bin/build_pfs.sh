@@ -88,6 +88,7 @@ build_package Subaru-PFS/pfs_utils $BRANCH "$TAG"
 build_package Subaru-PFS/obs_pfs $BRANCH "$TAG"
 
 if [ "$LIMITED" = false ]; then
+    build_package Subaru-PFS/drp_pfs_data $BRANCH "$TAG"
     build_package Subaru-PFS/drp_stella $BRANCH "$TAG"
     build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
 fi
