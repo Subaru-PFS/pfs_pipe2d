@@ -30,7 +30,7 @@ MAINTAINER deadshort
 LABEL description="Subaru PFS 2D pipeline plus instrument control" \
       name="pfs_icsdrp"
 
-ARG DEVTOOLSET=6
+ARG DEVTOOLSET=8
 ARG PFS_DIR=/home/pfs
 ARG STACK_DIR=/opt/pfs
 
