@@ -14,7 +14,7 @@ fi
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] <PREFIX>" 1>&2
+    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] [-C] <PREFIX>" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : branch of drp_stella_data to use" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: 'integration')" 1>&2
@@ -22,6 +22,7 @@ usage() {
     echo "    -c <CORES> : number of cores to use (default: 1)" 1>&2
     echo "    -G : don't clone or update from git" 1>&2
     echo "    -n : don't cleanup temporary products" 1>&2
+    echo "    -C : don't create calibs" 1>&2
     echo "    <PREFIX> : directory under which to operate" 1>&2
     echo "" 1>&2
     exit 1
@@ -34,13 +35,17 @@ TARGET="INTEGRATION"  # Directory name to give data repo
 CORES=1  # Number of cores to use
 USE_GIT=true # checkout/update from git
 CLEANUP=true  # Clean temporary products?
-while getopts ":b:c:d:Gnr:" opt; do
+BUILD_CALIBS=true  # Build calibs?
+while getopts ":b:c:Cd:Gnr:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
             ;;
         c)
             CORES=${OPTARG}
+            ;;
+        C)
+            BUILD_CALIBS=false
             ;;
         d)
             TARGET=${OPTARG}
@@ -99,58 +104,52 @@ else
 fi
 
 export OMP_NUM_THREADS=1
+drp_stella_data=${DRP_STELLA_DATA_DIR:-drp_stella_data}
 
-#
-# Look for the data files
-#
-if [ -d drp_stella_data ]; then
-    drp_stella_data=drp_stella_data
-else
-    drp_stella_data=$(find . -name PFLA00583012.fits | xargs dirname | xargs dirname)
+if ( $BUILD_CALIBS ); then
+    # Construct repo
+    rm -rf $TARGET
+    mkdir -p $TARGET
+    mkdir -p $TARGET/CALIB
+    [ -e $TARGET/_mapper ] || echo "lsst.obs.pfs.PfsMapper" > $TARGET/_mapper
+
+    # Ingest images into repo
+    ingestPfsImages.py $TARGET --mode=link \
+        $drp_stella_data/raw/PFFA*.fits \
+        -c clobber=True register.ignore=True
+
+    ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
+            $drp_stella_data/raw/detectorMap-sim-*.fits --mode=copy || exit 1
+
+    # Build calibs
+    calibsArgs=
+    if ( ! $CLEANUP ); then
+        calibsArgs="-n"
+    fi
+    pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
+        -b "field=BIAS" \
+        -d "field=DARK" \
+        -f "field=FLAT" \
+        -F "field=FLAT_ODD" -F "field=FLAT_EVEN" \
+        -a "field=ARC" \
+        $TARGET
 fi
-
-# Construct repo
-rm -rf $TARGET
-mkdir -p $TARGET
-mkdir -p $TARGET/CALIB
-[ -e $TARGET/_mapper ] || echo "lsst.obs.pfs.PfsMapper" > $TARGET/_mapper
-
-# Ingest images into repo
-ingestPfsImages.py $TARGET --mode=link \
-    $drp_stella_data/raw/PFFA*.fits \
-    -c clobber=True register.ignore=True
-
-ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
-		$drp_stella_data/raw/detectorMap-sim-*.fits --mode=copy || exit 1
-
-# Build calibs
-calibsArgs=
-if ( ! $CLEANUP ); then
-    calibsArgs="-n"
-fi
-pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
-    -b "field=BIAS" \
-    -d "field=DARK" \
-    -f "field=FLAT" \
-    -F "visit=20" \
-    -a "field=ARC" \
-    $TARGET
 
 # Detrend only
-detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=55 || exit 1
+detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=36 --doraise || exit 1
 
 # End-to-end pipeline
-reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
-mergeArms.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
-calculateReferenceFlux.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
-fluxCalibrate.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
-coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT || exit 1
+reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
+mergeArms.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
+calculateReferenceFlux.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
+fluxCalibrate.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
+coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
 
 python -c "
 from lsst.daf.persistence import Butler
 from pfs.datamodel.utils import calculatePfsVisitHash
 butler = Butler(\"${TARGET}/rerun/${RERUN}/pipeline\")
-visits = [54, 55]
+visits = [36, 37]
 spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=0x37, nVisit=len(visits), pfsVisitHash=calculatePfsVisitHash(visits))
 print(spectrum.flux[spectrum.mask == 0].sum())
 " || exit 1

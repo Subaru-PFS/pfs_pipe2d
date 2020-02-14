@@ -16,7 +16,7 @@ VALIDITY=1000  # Validity period (days)
 usage() {
     echo "Build calibs, given a set of biases, darks, flats and arcs" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] -b <BIASES> -d <DARKS> -f <FLATS> -F <FIBERTRACE> [-a <ARCS>] <REPO>" 1>&2
+    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] [-b <BIASES>] [-d <DARKS>] [-f <FLATS>] [-F <FIBERTRACE>] [-a <ARCS>] <REPO>" 1>&2
     echo "" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: '${RERUN}')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: ${CORES})" 1>&2
@@ -26,7 +26,7 @@ usage() {
     echo "    -b <BIASES> : identifier set for biases" 1>&2
     echo "    -d <DARKS> : identifier set for darks" 1>&2
     echo "    -f <FLATS> : identifier set for flats" 1>&2
-    echo "    -F <FIBERTRACE> : identifier set for fiberTrace" 1>&2
+    echo "    -F <FIBERTRACE> : identifier set for fiberTrace (multiple ok)" 1>&2
     echo "    -a <ARCS> : identifier set for arcs" 1>&2
     echo "    <REPO> : data repository directory" 1>&2
     echo "" 1>&2
@@ -38,7 +38,7 @@ CLEANUP=true  # Clean temporary products?
 BIASES=
 DARKS=
 FLATS=
-FIBERTRACES=
+FIBERTRACES=()
 ARCS=
 while getopts ":r:c:C:nv:b:d:f:F:a:" opt; do
     case "${opt}" in
@@ -67,7 +67,7 @@ while getopts ":r:c:C:nv:b:d:f:F:a:" opt; do
             FLATS=${OPTARG}
             ;;
         F)
-            FIBERTRACES=${OPTARG}
+            FIBERTRACES+=(${OPTARG})
             ;;
         a)
             ARCS=${OPTARG}
@@ -83,7 +83,7 @@ REPO=$1  # Data repository directory
 if [ -z "$REPO" ] || [ -n "$2" ]; then
     usage
 fi
-if [ -z "$BIASES" ] || [ -z "$DARKS" ] || [ -z "$FLATS" ] || [ -z "$FIBERTRACES" ]; then
+if [ -z "$BIASES" ] && [ -z "$DARKS" ] && [ -z "$FLATS" ] && [ -z "$FIBERTRACES" ] && [ -z "$ARCS" ]; then
     usage
 fi
 [ -z "$CALIB" ] && CALIB=${REPO}/CALIB
@@ -98,30 +98,50 @@ export OMP_NUM_THREADS=1
 set -evx
 
 # Build bias
-constructPfsBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
+if [ -n "$BIASES" ]; then
+    constructPfsBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
+fi
 
 # Build dark
-constructPfsDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
+if [ -n "$DARKS" ]; then
+    constructPfsDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
+fi
 
 # Build flat
-constructFiberFlat.py $REPO --calib $CALIB --rerun $RERUN/flat \
-            --id $FLATS $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
+if [ -n "$FLATS" ]; then
+    constructFiberFlat.py $REPO --calib $CALIB --rerun $RERUN/flat \
+                --id $FLATS $batchArgs || exit 1
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
+fi
 
-# Build fiber trace
-constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
-		       --id $FIBERTRACES $batchArgs || exit 1
-ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/*.fits || exit 1
-( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace ) || true
+# Build fiber traces
+for ff in "${FIBERTRACES[@]}"; do
+    constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
+                --id $ff $batchArgs || exit 1
+done
+shopt -s nullglob
+for detector in b1 r1; do
+    traces=($REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/pfsFiberTrace-*-${detector}.fits)
+    if (( ${#traces[@]} == 0 )); then
+        echo "No traces for detector ${detector}."
+        continue
+    fi
+    mkdir -p $REPO/rerun/$RERUN/fiberTrace-combined/
+    combineFiberTraces.py $REPO/rerun/$RERUN/fiberTrace-combined/$(basename ${traces[0]}) ${traces[*]}
+    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+		    $REPO/rerun/$RERUN/fiberTrace-combined/pfsFiberTrace-*-${detector}.fits || exit 1
+done
+if (( ${#FIBERTRACES[@]} > 0 )); then
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace $REPO/rerun/$RERUN/fiberTrace-combined ) || true
+fi
 
 # Process arc
 if [ -n "$ARCS" ]; then
