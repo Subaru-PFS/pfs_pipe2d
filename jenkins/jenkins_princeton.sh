@@ -10,6 +10,7 @@ export SCONSFLAGS="-j 4"  # SCons build flags
 # Need these on tiger to get the right environment
 . /etc/profile  # Get "module"
 module load rh/devtoolset/6  # Get modern compiler
+module load git  # For git-lfs
 
 set -ev
 
