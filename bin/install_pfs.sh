@@ -20,6 +20,7 @@ usage() {
     echo "    -l : limited install (w/o drp_stella, pfs_pipe2d)" 1>&2
     echo "    -L <VERSION> : version of LSST to install" 1>&2
     echo "    -t : tag name to apply" 1>&2
+    echo "    -S : install LSST from source (use for non-Redhat distros)" 1>&2
     echo "    <PREFIX> : directory in which to install" 1>&2
     echo "" 1>&2
     exit 1
@@ -32,7 +33,8 @@ LIMITED=false
 LSST_VERSION=v18_1_0
 PACKAGES=
 TAG=
-while getopts ":b:eh$L:p:t:" opt; do
+LSST_FROM_SOURCE=false
+while getopts ":b:eh$L:p:t:S" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
@@ -48,6 +50,9 @@ while getopts ":b:eh$L:p:t:" opt; do
             ;;
         t)
             TAG=${OPTARG}
+            ;;
+        S)
+            LSST_FROM_SOURCE=true
             ;;
         h | *)
             usage
@@ -69,6 +74,7 @@ cd $PREFIX
 lsst_args=""
 [ -n "$PACKAGES" ] && lsst_args+=" -p ""$PACKAGES"""
 [ -n "$LSST_VERSION" ] && lsst_args+=" -L $LSST_VERSION"
+( $LSST_FROM_SOURCE ) && lsst_args+=" -S"
 bash $HERE/bin/install_lsst.sh ${lsst_args}
 
 # Setup LSST

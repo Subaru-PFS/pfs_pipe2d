@@ -16,6 +16,7 @@ usage() {
     echo "    -e : install bleeding-edge LSST" 1>&2
     echo "    -L <VERSION> : version of LSST to install" 1>&2
     echo "    -p <PACKAGES> : space-delimited list of LSST packages to install" 1>&2
+    echo "    -S : install from source (use for non-Redhat distros)" 1>&2
     echo "" 1>&2
     exit 1
 }
@@ -26,10 +27,18 @@ install_lsst () {
     set -ev
     local version=$1  # LSST version to install
     local packages=$2  # Space-delimited list of packages
+    local fromSource=$3  # Want tarball distribution?
+    echo $version
+    echo $packages
+    echo $fromSource
     unset EUPS_DIR EUPS_PATH EUPS_PKGROOT EUPS_SHELL SETUP_EUPS
     unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
     curl -OL https://raw.githubusercontent.com/lsst/lsst/18.1.0/scripts/newinstall.sh
-    bash newinstall.sh -bct
+    local newinstallOptions="-bc"  # Batch mode; continue previous failed install
+    if ( ! $fromSource ); then
+        newinstallOptions+=" -t"
+    fi
+    bash newinstall.sh $newinstallOptions
     source loadLSST.bash
 
     install_args=
@@ -47,8 +56,8 @@ BRANCH=
 LIMITED=false
 LSST_VERSION=v18_1_0
 PACKAGES="pipe_drivers display_ds9 display_matplotlib"
-TAG=
-while getopts ":e:hL:p:" opt; do
+FROM_SOURCE=false
+while getopts ":e:hL:p:S" opt; do
     case "${opt}" in
         e)
             LSST_VERSION=
@@ -58,6 +67,9 @@ while getopts ":e:hL:p:" opt; do
             ;;
         p)
             PACKAGES=${OPTARG}
+            ;;
+        S)
+            FROM_SOURCE=true
             ;;
         h | *)
             usage
@@ -70,4 +82,4 @@ if [ -n "$1" ]; then
 fi
 
 set -ev
-install_lsst $LSST_VERSION "$PACKAGES"
+install_lsst $LSST_VERSION "$PACKAGES" $FROM_SOURCE
