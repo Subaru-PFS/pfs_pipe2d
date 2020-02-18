@@ -11,6 +11,9 @@ bin/install_lsst.sh:
 bin/build_pfs.sh:
 	mkdir -p bin/
 	cp -f ../bin/build_pfs.sh bin/
+bin/install_pfs.sh:
+	mkdir -p bin/
+	cp -f ../bin/install_pfs.sh bin/
 
 # LSST packages for PFS 2D pipeline
 lsst:	Dockerfile.lsst bin/install_lsst.sh
@@ -35,5 +38,6 @@ sim2d: Dockerfile.sim2d
 	docker build -t paprice/pfs_sim2d:$(TAG) -f Dockerfile.sim2d --build-arg VERSION=$(TAG) --build-arg BRANCH=$(PFS_BRANCH) .
 
 all:	lsst pipe2d pipe2d_debug sim2d
-.PHONY: lsst pipe2d pipe2d_debug sim2d all test bin/install_lsst.sh bin/build_pfs.sh
+bin:	bin/install_lsst.sh bin/build_pfs.sh bin/install_pfs.sh
+.PHONY: lsst pipe2d pipe2d_debug sim2d all bin test bin/install_lsst.sh bin/build_pfs.sh bin/install_pfs.sh
 .NOTPARALLEL:
