@@ -1,10 +1,12 @@
 FROM centos:7
+# Building the PFS stack from scratch on Centos using install_pfs.sh
+# Useful for testing the recommended install method.
 
 MAINTAINER paprice
 LABEL description="Subaru PFS 2D pipeline" \
-      name="paprice/pfs_pipe2d"
+      name="paprice/centos_pfs_pipe2d"
 
-ARG DEVTOOLSET=6
+ARG DEVTOOLSET=8
 ARG INSTALL_PFS_ARGS
 ARG INSTALL_DIR=/opt/pfs
 
@@ -15,7 +17,7 @@ SHELL ["/bin/bash", "-c"]
 
 USER root
 
-# Upgrade compiler using devtoolset-6
+# Upgrade compiler using devtoolset-8
 RUN yum -y update \
  && yum install -y centos-release-scl \
  && yum install -y \
@@ -27,8 +29,10 @@ RUN yum -y update \
 
 # LSST stack prerequisites
 RUN yum -y update \
+ && yum install -y epel-release \
+ && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash \
  && yum install -y bison curl blas bzip2-devel bzip2 flex fontconfig \
-        freetype-devel git libuuid-devel \
+        freetype-devel git git-lfs libuuid-devel \
         libXext libXrender libXt-devel make openssl-devel patch perl \
         readline-devel tar zlib-devel ncurses-devel cmake glib2-devel \
         java-1.8.0-openjdk gettext perl-ExtUtils-MakeMaker \
@@ -45,8 +49,19 @@ RUN mkdir -p ${INSTALL_DIR} && chown pfs:pfs ${INSTALL_DIR}
 USER pfs
 RUN mkdir -p ${INSTALL_DIR}/bin
 COPY bin/install_pfs.sh /home/pfs/bin/
+COPY bin/install_lsst.sh /home/pfs/bin/
 COPY bin/build_pfs.sh /home/pfs/bin/
 WORKDIR /home/pfs
+
+# Set up git-lfs
+RUN echo $'# Cache anonymous access to LSST Git LFS S3 servers\n\
+[credential "https://lsst-sqre-prod-git-lfs.s3-us-west-2.amazonaws.com"]\n\
+    helper = store\n\
+[credential "https://s3.lsst.codes"]\n\
+    helper = store\n' >> /home/pfs/.gitconfig \
+ && echo $'https://:@lsst-sqre-prod-git-lfs.s3-us-west-2.amazonaws.com\n\
+https://:@s3.lsst.codes\n' >> /home/pfs/.git-credentials \
+ && git lfs install
 
 # Strips out anything excess after the install
 RUN . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
@@ -60,7 +75,7 @@ RUN . /opt/rh/devtoolset-${DEVTOOLSET}/enable \
  && ( find ${INSTALL_DIR} -maxdepth 5 -name src -type d -exec rm -rf {} + \
       > /dev/null 2>&1 || true )
 
-RUN echo $'. '${INSTALL_DIR}'/loadLSST.bash\n\
+RUN echo $'. '${INSTALL_DIR}$'/loadLSST.bash\n\
 setup pfs_pipe2d\n' >> /home/pfs/.bashrc
 
 CMD /bin/bash
