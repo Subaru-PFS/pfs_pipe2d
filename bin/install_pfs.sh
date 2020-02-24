@@ -27,6 +27,13 @@ usage() {
 }
 
 
+abspath() {
+    # Return absolute path to file
+    # $1 : relative filename
+    echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+}
+
+
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
@@ -60,10 +67,10 @@ while getopts ":b:eh$L:p:t:S" opt; do
     esac
 done
 shift $((OPTIND-1))
-PREFIX=$1
-if [ -z "$PREFIX" ] || [ -n "$2" ]; then
+if [ -z "$1" ] || [ -n "$2" ]; then
     usage
 fi
+PREFIX=$(abspath $1)
 
 set -ev
 
