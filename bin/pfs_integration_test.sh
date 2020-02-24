@@ -136,7 +136,7 @@ if ( $BUILD_CALIBS ); then
 fi
 
 # Detrend only
-detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=36 --doraise || exit 1
+detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=39 --doraise || exit 1
 
 # End-to-end pipeline
 reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
@@ -149,8 +149,8 @@ python -c "
 from lsst.daf.persistence import Butler
 from pfs.datamodel.utils import calculatePfsVisitHash
 butler = Butler(\"${TARGET}/rerun/${RERUN}/pipeline\")
-visits = [36, 37]
-spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=0x37, nVisit=len(visits), pfsVisitHash=calculatePfsVisitHash(visits))
+visits = [39, 40]
+spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=0xabc, nVisit=len(visits), pfsVisitHash=calculatePfsVisitHash(visits))
 print(spectrum.flux[spectrum.mask == 0].sum())
 " || exit 1
 
