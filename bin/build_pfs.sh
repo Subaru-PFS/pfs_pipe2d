@@ -81,6 +81,7 @@ set -ev
 eval $("$EUPS_DIR/bin/eups_setup" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR")
 
 setup sconsUtils
+env
 
 build_package Subaru-PFS/datamodel $BRANCH "$TAG"
 build_package Subaru-PFS/pfs_utils $BRANCH "$TAG"
