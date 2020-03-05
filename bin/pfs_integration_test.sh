@@ -85,7 +85,7 @@ if $USE_GIT; then
         if [ -n $BRANCH ]; then
             git -c lfs.batch=true checkout $BRANCH || echo "Can't checkout $BRANCH"
         fi
-	    popd
+        popd
     else
         if [ -n $BRANCH ]; then
             ( git -c lfs.batch=true clone --branch=$BRANCH --single-branch https://github.com/Subaru-PFS/drp_stella_data || git -c lfs.batch=true clone --branch=master --single-branch https://github.com/Subaru-PFS/drp_stella_data )
@@ -95,7 +95,7 @@ if $USE_GIT; then
     fi
 else
     if [ -n $BRANCH ]; then
-	echo "Ignoring branch $BRANCH as you chose -G" >&2
+    echo "Ignoring branch $BRANCH as you chose -G" >&2
     fi
 fi
 
