@@ -41,7 +41,6 @@ build_package () {
     echo Building version ${version}...
 
     setup -k -r .
-    scons
     scons_args=" version=$version"
     [ -n "$tag" ] && scons_args+=" --tag=$tag"
     scons install declare ${scons_args}
