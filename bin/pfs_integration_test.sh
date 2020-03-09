@@ -80,27 +80,31 @@ TARGET="$(pwd)/$TARGET"
 if $USE_GIT; then
     # Setting lfs.batch=true enables passwordless downloads with git-lfs.
     if [ -e drp_stella_data ]; then
-	pushd drp_stella_data
-	git fetch --all --force --prune --tags
-	popd
+        pushd drp_stella_data
+        git fetch --all --force --prune --tags
+        if [ -n $BRANCH ]; then
+            git -c lfs.batch=true checkout $BRANCH || echo "Can't checkout $BRANCH"
+        fi
+        popd
     else
-	git -c lfs.batch=true clone https://github.com/Subaru-PFS/drp_stella_data
-    fi
-    if [ -n $BRANCH ]; then
-	pushd drp_stella_data
-	git -c lfs.batch=true checkout $BRANCH || echo "Can't checkout $BRANCH"
-	popd
+        if [ -n $BRANCH ]; then
+            ( git -c lfs.batch=true clone --branch=$BRANCH --single-branch https://github.com/Subaru-PFS/drp_stella_data || git -c lfs.batch=true clone --branch=master --single-branch https://github.com/Subaru-PFS/drp_stella_data )
+        else
+            git -c lfs.batch=true clone --branch=master --single-branch https://github.com/Subaru-PFS/drp_stella_data
+        fi
     fi
 else
     if [ -n $BRANCH ]; then
-	echo "Ignoring branch $BRANCH as you chose -G" >&2
+    echo "Ignoring branch $BRANCH as you chose -G" >&2
     fi
 fi
 
 if [ $CORES = 1 ]; then
     batchArgs="--batch-type=none --doraise"
+    runArgs="--doraise"
 else
     batchArgs="--batch-type=smp --cores $CORES --doraise"
+    runArgs="-j $CORES --doraise"
 fi
 
 export OMP_NUM_THREADS=1
@@ -136,21 +140,21 @@ if ( $BUILD_CALIBS ); then
 fi
 
 # Detrend only
-detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=39 --doraise || exit 1
+detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=25 $runArgs || exit 1
 
 # End-to-end pipeline
-reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
-mergeArms.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
-calculateReferenceFlux.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
-fluxCalibrate.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
-coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT --doraise || exit 1
+reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
+mergeArms.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
+calculateReferenceFlux.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
+fluxCalibrate.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
+coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
 
 python -c "
 from lsst.daf.persistence import Butler
 from pfs.datamodel.utils import calculatePfsVisitHash
 butler = Butler(\"${TARGET}/rerun/${RERUN}/pipeline\")
-visits = [39, 40]
-spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=0xabc, nVisit=len(visits), pfsVisitHash=calculatePfsVisitHash(visits))
+visits = [24, 25]
+spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=0xace, nVisit=len(visits), pfsVisitHash=calculatePfsVisitHash(visits))
 print(spectrum.flux[spectrum.mask == 0].sum())
 " || exit 1
 

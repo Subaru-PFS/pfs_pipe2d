@@ -137,7 +137,7 @@ for detector in b1 r1; do
     mkdir -p $REPO/rerun/$RERUN/fiberTrace-combined/
     combineFiberTraces.py $REPO/rerun/$RERUN/fiberTrace-combined/$(basename ${traces[0]}) ${traces[*]}
     ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-		    $REPO/rerun/$RERUN/fiberTrace-combined/pfsFiberTrace-*-${detector}.fits || exit 1
+            $REPO/rerun/$RERUN/fiberTrace-combined/pfsFiberTrace-*-${detector}.fits || exit 1
 done
 if (( ${#FIBERTRACES[@]} > 0 )); then
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace $REPO/rerun/$RERUN/fiberTrace-combined ) || true

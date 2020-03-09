@@ -41,7 +41,6 @@ build_package () {
     echo Building version ${version}...
 
     setup -k -r .
-    scons
     scons_args=" version=$version"
     [ -n "$tag" ] && scons_args+=" --tag=$tag"
     scons install declare ${scons_args}
@@ -82,6 +81,7 @@ set -ev
 eval $("$EUPS_DIR/bin/eups_setup" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR")
 
 setup sconsUtils
+env
 
 build_package Subaru-PFS/datamodel $BRANCH "$TAG"
 build_package Subaru-PFS/pfs_utils $BRANCH "$TAG"
