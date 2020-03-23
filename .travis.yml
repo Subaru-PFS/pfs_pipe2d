@@ -4,15 +4,12 @@
 # (as opposed to this top-level package which contains the tests),
 # see the "travis.yml.TEMPLATE" file.
 
-language: python  # Not really, because we're running Docker, but we need something
+language: minimal
 services:
   - docker
-sudo: true
-python:
-  - 3.6
 os:
   - linux
-matrix:
+jobs:
   fast_finish: true
 notifications:
   email: false
