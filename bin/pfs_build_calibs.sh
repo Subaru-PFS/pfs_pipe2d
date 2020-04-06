@@ -102,7 +102,7 @@ set -evx
 # Build bias
 if [ -n "$BIASES" ]; then
     constructPfsBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
 fi
@@ -110,7 +110,7 @@ fi
 # Build dark
 if [ -n "$DARKS" ]; then
     constructPfsDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
 fi
@@ -119,7 +119,7 @@ fi
 if [ -n "$FLATS" ]; then
     constructFiberFlat.py $REPO --calib $CALIB --rerun $RERUN/flat \
                 --id $FLATS $batchArgs || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
 fi
@@ -153,7 +153,7 @@ fi
 # Process arc
 if [ -n "$ARCS" ]; then
     reduceArc.py $REPO --calib $CALIB --rerun $RERUN/arc --id $ARCS -j $CORES || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/arc/DETECTORMAP/*.fits \
                 -c clobber=True register.ignore=True || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/arc ) || true
