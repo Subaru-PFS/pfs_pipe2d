@@ -136,7 +136,7 @@ if (( ${#FIBERTRACES[@]} > 0 )); then
                 $fiberTraceIdString $batchArgs || exit 1
 
     shopt -s nullglob
-    for detector in b1 r1; do
+    for detector in b1 r1 m1 n1; do
         traces=($REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/pfsFiberTrace-*-${detector}.fits)
         if (( ${#traces[@]} == 0 )); then
             echo "No traces for detector ${detector}."
