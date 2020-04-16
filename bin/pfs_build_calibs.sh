@@ -67,7 +67,9 @@ while getopts ":r:c:C:nv:b:d:f:F:a:" opt; do
             FLATS=${OPTARG}
             ;;
         F)
+            IFS=$'\n'
             FIBERTRACES+=(${OPTARG})
+            unset IFS
             ;;
         a)
             ARCS=${OPTARG}
@@ -123,23 +125,28 @@ if [ -n "$FLATS" ]; then
 fi
 
 # Build fiber traces
-for ff in "${FIBERTRACES[@]}"; do
-    constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
-                --id $ff $batchArgs || exit 1
-done
-shopt -s nullglob
-for detector in b1 r1; do
-    traces=($REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/pfsFiberTrace-*-${detector}.fits)
-    if (( ${#traces[@]} == 0 )); then
-        echo "No traces for detector ${detector}."
-        continue
-    fi
-    mkdir -p $REPO/rerun/$RERUN/fiberTrace-combined/
-    combineFiberTraces.py $REPO/rerun/$RERUN/fiberTrace-combined/$(basename ${traces[0]}) ${traces[*]}
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-            $REPO/rerun/$RERUN/fiberTrace-combined/pfsFiberTrace-*-${detector}.fits || exit 1
-done
 if (( ${#FIBERTRACES[@]} > 0 )); then
+    fiberTraceIdString=""
+    IFS="\n"
+    for ft in "${FIBERTRACES[@]}"; do
+        fiberTraceIdString+=" --id $ft"
+    done
+    unset IFS
+    constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
+                $fiberTraceIdString $batchArgs || exit 1
+
+    shopt -s nullglob
+    for detector in b1 r1 m1 n1; do
+        traces=($REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/pfsFiberTrace-*-${detector}.fits)
+        if (( ${#traces[@]} == 0 )); then
+            echo "No traces for detector ${detector}."
+            continue
+        fi
+        mkdir -p $REPO/rerun/$RERUN/fiberTrace-combined/
+        combineFiberTraces.py $REPO/rerun/$RERUN/fiberTrace-combined/$(basename ${traces[0]}) ${traces[*]}
+        ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                $REPO/rerun/$RERUN/fiberTrace-combined/pfsFiberTrace-*-${detector}.fits || exit 1
+    done
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace $REPO/rerun/$RERUN/fiberTrace-combined ) || true
 fi
 
