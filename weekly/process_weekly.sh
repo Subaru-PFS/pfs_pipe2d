@@ -92,3 +92,5 @@ mergeArms.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $i
 calculateReferenceFlux.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
 fluxCalibrate.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
 coaddSpectra.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
+
+$HERE/test_weekly.py --raw=$DATADIR --rerun=$WORKDIR/rerun/$RERUN
