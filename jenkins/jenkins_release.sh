@@ -15,7 +15,7 @@ module load git  # For git-lfs
 set -ev
 
 # Set parameters from Jenkins envvars
-GIT_TAG=$(git describe --tags --always)  # Tag to build
+[ -n "$GIT_TAG" ] || ( echo "No GIT_TAG supplied." && exit 1 )
 VERSION=$(echo "$GIT_TAG" | sed 's|[/ ]|_|g')  # Version to call it
 BUILD=$WORKDIR/build/$VERSION/$(date '+%Y%m%dT%H%M%S')  # Build directory
 env
