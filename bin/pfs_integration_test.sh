@@ -156,7 +156,7 @@ from lsst.daf.persistence import Butler
 from pfs.datamodel.utils import calculatePfsVisitHash
 butler = Butler(\"${TARGET}/rerun/${RERUN}/pipeline\")
 visits = [24, 25]
-spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=2019, nVisit=len(visits), pfsVisitHash=calculatePfsVisitHash(visits))
+spectrum = butler.get(\"pfsObject\", catId=1, tract=0, patch=\"0,0\", objId=55, nVisit=len(visits), pfsVisitHash=calculatePfsVisitHash(visits))
 print(spectrum.flux[spectrum.mask == 0].sum())
 spectrum.plot()
 " || exit 1
