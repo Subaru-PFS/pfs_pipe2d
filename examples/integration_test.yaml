@@ -1,0 +1,60 @@
+#
+# initial detectorMap
+#
+# The files are to be found in dirName, taken to be relative to --dataDir if
+# not an absolute path
+#
+init:
+  dirName: "$DRP_STELLA_DATA_DIR/raw"
+  arms: [r1, b1]
+  detectorMapFmt: "detectorMap-sim-{arm}.fits"
+#
+# Blocks of data which are used together to update the calibrations
+#
+calibBlocks:
+  integration_test:
+    bias:
+      id: "field=BIAS"
+      # config: ...
+    dark:
+      id: "field=DARK"
+      # config: ...
+    flat:
+      id: "field=FLAT"
+      # config: minSNR=50
+    bootstrap:
+      # validity: 1
+      group:
+        -
+          flatId: ["visit=11", "arm=b"]
+          arcId: ["visit=22", "arm=b"]
+          # config: ...
+        -
+          flatId: ["visit=11", "arm=r"]
+          arcId: ["visit=22", "arm=r"]
+          # config: ...
+    fiberTrace:
+      group:
+        -
+          id: "field=FLAT_ODD"
+          # config: [trace.apertureFWHM=3]
+        -
+          id: "field=FLAT_EVEN"
+          # config: [trace.apertureFWHM=3]
+      # config: ...
+    detectorMap:
+      id: "field=ARC"
+      # config: ...
+
+scienceBlocks:
+  integration_test:
+    id: "field=OBJECT"
+#   policy:
+#     reduceExposure:
+#       config: ...
+#     mergeArms:
+#       config: ...
+#     calculateReferenceFlux:
+#       config: ...
+#     fluxCalibrate:
+#       config: ...
