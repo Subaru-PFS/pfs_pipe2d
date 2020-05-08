@@ -16,12 +16,13 @@ VALIDITY=1000  # Validity period (days)
 usage() {
     echo "Build calibs, given a set of biases, darks, flats and arcs" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] [-b <BIASES>] [-d <DARKS>] [-f <FLATS>] [-F <FIBERTRACE>] [-a <ARCS>] <REPO>" 1>&2
+    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] [-D] [-b <BIASES>] [-d <DARKS>] [-f <FLATS>] [-F <FIBERTRACE>] [-a <ARCS>] <REPO>" 1>&2
     echo "" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: '${RERUN}')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: ${CORES})" 1>&2
     echo "    -C <CALIB> : directory for calibs" 1>&2
     echo "    -n : don't cleanup temporary products" 1>&2
+    echo "    -D : developer mode (--clobber-config --no-versions)" 1>&2
     echo "    -v <VALIDITY> : validity period (days; default: ${VALIDITY})" 1>&2
     echo "    -b <BIASES> : identifier set for biases" 1>&2
     echo "    -d <DARKS> : identifier set for darks" 1>&2
@@ -40,7 +41,8 @@ DARKS=
 FLATS=
 FIBERTRACES=()
 ARCS=
-while getopts ":r:c:C:nv:b:d:f:F:a:" opt; do
+DEVELOPER=false
+while getopts ":r:c:C:nv:b:d:f:F:a:D" opt; do
     case "${opt}" in
         r)
             RERUN=${OPTARG}
@@ -74,6 +76,9 @@ while getopts ":r:c:C:nv:b:d:f:F:a:" opt; do
         a)
             ARCS=${OPTARG}
             ;;
+        D)
+            DEVELOPER=true
+            ;;
         *)
             usage
             ;;
@@ -90,10 +95,12 @@ if [ -z "$BIASES" ] && [ -z "$DARKS" ] && [ -z "$FLATS" ] && [ -z "$FIBERTRACES"
 fi
 [ -z "$CALIB" ] && CALIB=${REPO}/CALIB
 
+devArgs=""
+( $DEVELOPER ) && devArgs+=" --clobber-config --no-versions"
 if [ $CORES = 1 ]; then
-    batchArgs="--batch-type=none --doraise"
+    batchArgs="--batch-type=none --doraise $devArgs"
 else
-    batchArgs="--batch-type=smp --cores $CORES --doraise"
+    batchArgs="--batch-type=smp --cores $CORES --doraise $devArgs"
 fi
 export OMP_NUM_THREADS=1
 
@@ -102,7 +109,7 @@ set -evx
 # Build bias
 if [ -n "$BIASES" ]; then
     constructPfsBias.py $REPO --calib $CALIB --rerun $RERUN/bias --id $BIASES $batchArgs || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/bias/BIAS/*.fits || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/bias) || true
 fi
@@ -110,7 +117,7 @@ fi
 # Build dark
 if [ -n "$DARKS" ]; then
     constructPfsDark.py $REPO --calib $CALIB --rerun $RERUN/dark --id $DARKS $batchArgs || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/dark/DARK/*.fits || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/dark) || true
 fi
@@ -119,7 +126,7 @@ fi
 if [ -n "$FLATS" ]; then
     constructFiberFlat.py $REPO --calib $CALIB --rerun $RERUN/flat \
                 --id $FLATS $batchArgs || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/flat/FLAT/*.fits || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
 fi
@@ -152,8 +159,8 @@ fi
 
 # Process arc
 if [ -n "$ARCS" ]; then
-    reduceArc.py $REPO --calib $CALIB --rerun $RERUN/arc --id $ARCS -j $CORES || exit 1
-    ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+    reduceArc.py $REPO --calib $CALIB --rerun $RERUN/arc --id $ARCS -j $CORES $devArgs || exit 1
+    ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/arc/DETECTORMAP/*.fits \
                 -c clobber=True register.ignore=True || exit 1
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/arc ) || true

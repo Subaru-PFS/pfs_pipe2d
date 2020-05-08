@@ -2,3 +2,4 @@ setupRequired(drp_stella)
 setupRequired(pfs_utils)
 
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
+envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
