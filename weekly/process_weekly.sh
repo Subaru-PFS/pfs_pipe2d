@@ -34,6 +34,9 @@ while getopts "c:d:Dnr:" opt; do
         n)
             CLEANUP=false
             ;;
+        r)
+            RERUN=${OPTARG}
+            ;;
         h | *)
             usage
             ;;
