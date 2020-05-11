@@ -8,8 +8,8 @@ import lsst.utils.tests
 import lsst.afw.image.testUtils
 from lsst.daf.persistence import Butler
 
-from pfs.datamodel import PfsDesign, TargetType, calculatePfsVisitHash
-from pfs.drp.stella.tests.utils import methodParameters, classParameters, runTests
+from pfs.datamodel import PfsDesign, calculatePfsVisitHash
+from pfs.drp.stella.tests.utils import classParameters
 from pfs.pipe2d.weekly.utils import getBrnVisits, getBmnVisits
 
 display = None
@@ -98,7 +98,6 @@ class ArcTestCase(lsst.utils.tests.TestCase):
                     self.assertFloatsAlmostEqual(wlFitData.stdev(fiberId), 0.0, atol=3.0e-2)
 
 
-
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass
 
@@ -133,4 +132,4 @@ if __name__ == "__main__":
         profile.disable()
         stats = pstats.Stats(profile)
         stats.sort_stats("cumulative")
-        stats.print_stats(profileTop)
+        stats.print_stats(30)
