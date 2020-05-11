@@ -18,6 +18,7 @@ set -ev
 
 # Build the pipeline
 mkdir -p $WORKDIR/build
+export SCONSFLAGS="-j $CORES"
 $HERE/bin/install_pfs.sh -t current $WORKDIR/build
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
