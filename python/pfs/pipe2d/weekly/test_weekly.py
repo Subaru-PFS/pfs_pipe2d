@@ -94,7 +94,7 @@ class ArcTestCase(lsst.utils.tests.TestCase):
                 with self.subTest(arm=arm, fiberId=fiberId):
                     num = (wlFitData.fiberId == fiberId).sum()
                     self.assertGreater(num, 100)
-                    self.assertFloatsAlmostEqual(wlFitData.mean(fiberId), 0.0, atol=1.0e-3)
+                    self.assertFloatsAlmostEqual(wlFitData.mean(fiberId), 0.0, atol=2.0e-3)
                     self.assertFloatsAlmostEqual(wlFitData.stdev(fiberId), 0.0, atol=3.0e-2)
 
 
