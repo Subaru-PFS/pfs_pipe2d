@@ -69,11 +69,17 @@ pfs_build_calibs.sh -r $RERUN/calib/brn -c $CORES -C $WORKDIR/CALIB $calibsArgs 
     -d "field=DARK arm=b^r^n" \
     -f "field=FLAT arm=b^r^n" \
     -F "visit=35" -F "visit=37" \
-    -a "visit=39..45:2" \
     $WORKDIR
 # Calibs for m
 pfs_build_calibs.sh -r $RERUN/calib/m -c $CORES -C $WORKDIR/CALIB $calibsArgs \
     -F "visit=36 arm=m" -F "visit=38 arm=m" \
+    $WORKDIR
+
+# Run calibs over again just with for the arcs: we want to preserve their outputs so we can test the results
+pfs_build_calibs.sh -r $RERUN/calib/brn -c $CORES -C $WORKDIR/CALIB $calibsArgs -n \
+    -a "visit=39..45:2" \
+    $WORKDIR
+pfs_build_calibs.sh -r $RERUN/calib/m -c $CORES -C $WORKDIR/CALIB $calibsArgs -n \
     -a "visit=40..46:2 arm=m" \
     $WORKDIR
 
