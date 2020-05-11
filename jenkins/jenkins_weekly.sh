@@ -6,7 +6,7 @@ CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")" && pwd)
 
 # Ensure the environment is clean
-[ -n "$(which eups)" ] && unsetup eups
+( [ -n "$(which eups)" ] && unsetup eups ) || echo "No eups in environment."
 unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
 
 # Need these on tiger to get the right environment
