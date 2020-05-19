@@ -28,4 +28,3 @@ setup pfs_pipe2d
 
 # Run the weekly production test
 $HERE/weekly/process_weekly.sh -d $RAWDATA -r weekly -c $CORES $WORKDIR/process
-$HERE/weekly/test_weekly.py --raw=$RAWDATA --rerun=$WORKDIR/process/rerun/weekly
