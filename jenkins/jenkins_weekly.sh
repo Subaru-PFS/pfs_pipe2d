@@ -4,6 +4,7 @@ WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
 RAWDATA=/projects/HSC/PFS/weekly
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
+TAG=$(date +'w_%Y_%U')
 
 # Ensure the environment is clean
 ( type eups && unsetup eups ) || echo "No eups in environment."
@@ -13,13 +14,15 @@ unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHO
 . /etc/profile  # Get "module"
 module load rh/devtoolset/6  # Get modern compiler
 module load git  # For git-lfs
+module load anaconda3  # For python3 with 'requests', for release_pipe2d.py
 
 set -ev
 
 # Build the pipeline
 mkdir -p $WORKDIR/build
 export SCONSFLAGS="-j $CORES"
-$HERE/bin/install_pfs.sh -t current $WORKDIR/build
+$HERE/jenkins/release_pipe2d.py -m "Automated weekly build" $TAG  # Create release for everyone to use
+$HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
 
