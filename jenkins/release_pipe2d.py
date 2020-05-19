@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import json
 import getpass
 import argparse
@@ -7,20 +8,31 @@ import datetime
 
 JENKINS_URL = "https://jenkins.princeton.edu/job/Sumire/job/Prime%20Focus%20Spectrograph/job/release/buildWithParameters"  # noqa
 JENKINS_TOKEN = "pfs_pipe2d"
+# Jenkins user/auth can be hard-wired, since no-one else has a Jenkins account
 JENKINS_USER = "pprice"
-JENKINS_AUTH = "/home/pprice/jenkins/jenkins_api_token"
+JENKINS_AUTH = "/home/pprice/.pfs/jenkins_api_token"
+
+# Github users are hard-coded, because there's only a limited number of us with access to the
+# Princeton clusters where this script can be successfully used (because Jenkins is behind a firewall).
 GITHUB_URL = "https://api.github.com/repos"
-GITHUB_USER = "PaulPrice"
-GITHUB_AUTH = "/home/pprice/jenkins/github_api_token"
+GITHUB_USER = {"pprice": "PaulPrice",
+               "hassans": "hassanxp",
+               "rhl": "RobertLuptonTheGood",
+               "ncaplar": "nevencaplar",
+               "craigl": "CraigLoomis",
+               }
+GITHUB_AUTH = os.path.join(os.environ["HOME"], ".pfs", "github_api_token")
 USER_NAME = {"pprice": "Paul Price",
              "hassans": "Hassan Siddiqui",
              "ncaplar": "Neven Caplar",
              "rhl": "Robert Lupton the Good",
+             "craigl": "Craig Loomis",
              }
 USER_EMAIL = {"pprice": "price@astro.princeton.edu",
               "hassans": "hassans@astro.princeton.edu",
               "ncaplar": "ncaplar@princeton.edu",
               "rhl": "rhl@astro.princeton.edu",
+              "craigl": "cloomis@astro.princeton.edu",
               }
 
 
@@ -41,7 +53,7 @@ def getGitHubAuth():
     file.
     """
     with open(GITHUB_AUTH) as fd:
-        return (GITHUB_USER, fd.readline().strip())
+        return (GITHUB_USER[getpass.getuser()], fd.readline().strip())
 
 
 def triggerJenkins(tag):
