@@ -4,7 +4,10 @@ WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
 RAWDATA=/projects/HSC/PFS/weekly
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
-TAG=$(date +'w_%Y_%U')
+[ -z "$TAG" ] && TAG=$(date +'w_%Y_%U')
+[ -z "$BRANCH" ] && BRANCH=master
+
+echo "Running weekly with TAG=$TAG BRANCH=$BRANCH"
 
 # Ensure the environment is clean
 ( type eups && unsetup eups ) || echo "No eups in environment."
@@ -21,7 +24,7 @@ set -ev
 # Build the pipeline
 mkdir -p $WORKDIR/build
 export SCONSFLAGS="-j $CORES"
-$HERE/jenkins/release_pipe2d.py -m "Automated weekly build" $TAG  # Create release for everyone to use
+$HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # Create release
 $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
