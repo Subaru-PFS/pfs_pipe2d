@@ -4,8 +4,13 @@ WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
 RAWDATA=/projects/HSC/PFS/weekly
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
-[ -z "$TAG" ] && TAG=$(date +'w_%Y_%U')
+[ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
 [ -z "$BRANCH" ] && BRANCH=master
+
+if [[ $TAG =~ "_" ]]; then
+    echo "Underscores are not permitted in the tag name ($TAG) due to eups munging."
+    exit 1
+fi
 
 echo "Running weekly with TAG=$TAG BRANCH=$BRANCH"
 

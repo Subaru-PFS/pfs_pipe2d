@@ -168,6 +168,8 @@ def run(tag, branch="master", message=None):
     message : `str`, optional
         Message for annotated tag.
     """
+    if "_" in tag:
+        raise RuntimeError("No underscores are permitted in the tag name")
     if message is None:
         message = f"Tag {tag} on branch {branch}"
     tagPackage("Subaru-PFS/datamodel", tag, message, branch=branch)
@@ -185,7 +187,7 @@ def main():
     parser = argparse.ArgumentParser(description="Tag and release the 2D pipeline")
     parser.add_argument("-b", "--branch", default="master", help="Branch to tag")
     parser.add_argument("-m", "--message", help="Tag message")
-    parser.add_argument("tag", help="Tag name to apply")
+    parser.add_argument("tag", help="Tag name to apply (no underscores)")
     args = parser.parse_args()
     run(args.tag, args.branch, args.message)
 

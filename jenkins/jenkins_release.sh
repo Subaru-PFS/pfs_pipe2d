@@ -20,6 +20,11 @@ VERSION=$(echo "$GIT_TAG" | sed 's|[/ ]|_|g')  # Version to call it
 BUILD=$WORKDIR/build/$VERSION/$(date '+%Y%m%dT%H%M%S')  # Build directory
 env
 
+if [[ $GIT_TAG =~ "_" ]]; then
+    echo "Underscores are not permitted in the tag name ($TAG) due to eups munging."
+    exit 1
+fi
+
 mkdir -p $BUILD
 pushd $BUILD
 
