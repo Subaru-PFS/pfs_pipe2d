@@ -36,6 +36,10 @@ pushd $BUILD
 eups distrib create --server-dir=$DISTRIB/src -S REPOSITORY_PATH='git://github.com/Subaru-PFS/$PRODUCT.git' -f generic -d eupspkg pfs_pipe2d $VERSION
 eups distrib create --server-dir=$DISTRIB/Linux64 -d tarball pfs_pipe2d $VERSION
 
+# Generate a changelog
+setup pfs_pipe2d
+generateChangelog.py --outfile $DISTRIB/changelog/${VERSION}.html datamodel pfs_utils drp_pfs_data obs_pfs drp_stella_data drp_stella pfs_pipe2d
+
 # Clean up
 popd
 rm -rf $BUILD
