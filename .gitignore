@@ -1,2 +1,4 @@
 .scon*
 python/pfs/pipe2d/version.py
+python/pfs/pipe2d/ticket.cache.db
+bin/generateChangelog.py
