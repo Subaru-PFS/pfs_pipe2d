@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import json
 import getpass
 import argparse
@@ -7,20 +8,31 @@ import datetime
 
 JENKINS_URL = "https://jenkins.princeton.edu/job/Sumire/job/Prime%20Focus%20Spectrograph/job/release/buildWithParameters"  # noqa
 JENKINS_TOKEN = "pfs_pipe2d"
+# Jenkins user/auth can be hard-wired, since no-one else has a Jenkins account
 JENKINS_USER = "pprice"
-JENKINS_AUTH = "/home/pprice/jenkins/jenkins_api_token"
+JENKINS_AUTH = "/home/pprice/.pfs/jenkins_api_token"
+
+# Github users are hard-coded, because there's only a limited number of us with access to the
+# Princeton clusters where this script can be successfully used (because Jenkins is behind a firewall).
 GITHUB_URL = "https://api.github.com/repos"
-GITHUB_USER = "PaulPrice"
-GITHUB_AUTH = "/home/pprice/jenkins/github_api_token"
+GITHUB_USER = {"pprice": "PaulPrice",
+               "hassans": "hassanxp",
+               "rhl": "RobertLuptonTheGood",
+               "ncaplar": "nevencaplar",
+               "craigl": "CraigLoomis",
+               }
+GITHUB_AUTH = os.path.join(os.environ["HOME"], ".pfs", "github_api_token")
 USER_NAME = {"pprice": "Paul Price",
              "hassans": "Hassan Siddiqui",
              "ncaplar": "Neven Caplar",
              "rhl": "Robert Lupton the Good",
+             "craigl": "Craig Loomis",
              }
 USER_EMAIL = {"pprice": "price@astro.princeton.edu",
               "hassans": "hassans@astro.princeton.edu",
               "ncaplar": "ncaplar@princeton.edu",
               "rhl": "rhl@astro.princeton.edu",
+              "craigl": "cloomis@astro.princeton.edu",
               }
 
 
@@ -41,7 +53,7 @@ def getGitHubAuth():
     file.
     """
     with open(GITHUB_AUTH) as fd:
-        return (GITHUB_USER, fd.readline().strip())
+        return (GITHUB_USER[getpass.getuser()], fd.readline().strip())
 
 
 def triggerJenkins(tag):
@@ -156,6 +168,8 @@ def run(tag, branch="master", message=None):
     message : `str`, optional
         Message for annotated tag.
     """
+    if "_" in tag:
+        raise RuntimeError("No underscores are permitted in the tag name")
     if message is None:
         message = f"Tag {tag} on branch {branch}"
     tagPackage("Subaru-PFS/datamodel", tag, message, branch=branch)
@@ -173,7 +187,7 @@ def main():
     parser = argparse.ArgumentParser(description="Tag and release the 2D pipeline")
     parser.add_argument("-b", "--branch", default="master", help="Branch to tag")
     parser.add_argument("-m", "--message", help="Tag message")
-    parser.add_argument("tag", help="Tag name to apply")
+    parser.add_argument("tag", help="Tag name to apply (no underscores)")
     args = parser.parse_args()
     run(args.tag, args.branch, args.message)
 
