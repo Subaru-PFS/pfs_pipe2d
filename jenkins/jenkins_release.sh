@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration parameters
-HERE=$(pwd)  # Starting directory (where the package is checked out)
+HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/  # Parent directory of this script
 WORKDIR=/scratch/pprice/jenkins  # Working directory
 STACK=/tigress/HSC/PFS/stack/current  # Stack directory
 DISTRIB=/tigress/HSC/PFS/distrib  # Distribution directory
