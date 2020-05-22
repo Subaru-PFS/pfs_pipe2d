@@ -1,10 +1,7 @@
 from collections import defaultdict
-from collections import OrderedDict
-import datetime
 import json
 import os
 import re
-from urllib.request import urlopen
 from urllib.error import HTTPError
 import requests
 import dbm
@@ -13,6 +10,7 @@ import lsst.log
 from configparser import ConfigParser
 from html import escape as hescape
 import getpass
+import datetime
 
 logger = lsst.log.Log.getLogger("pfs.pipe2d.git_changelog")
 
@@ -78,8 +76,16 @@ NOT_TAGGED = 'NOT-TAGGED'
 For grouping recently closed tickets that are not in a release, so not tagged.
 """
 
+DATE_TOL_MIN = 2
+"""The tolerance for comparing ticket timestamps against tag ranges [minutes]
+"""
 
-def _noAuthentication(authfile):
+REPO_PRINCIPAL = 'pfs_pipe2d'
+"""Name of repo that provides tag-date information
+"""
+
+
+def _no_authentication(authfile):
     """Handles situation where no GitHub API authentication
     is to be provided.
 
@@ -97,7 +103,7 @@ def _noAuthentication(authfile):
     return None
 
 
-def _externalAuthentication(authfile):
+def _external_authentication(authfile):
     """Handles authentication being provided by an external file.
 
     Parameters
@@ -122,7 +128,7 @@ def _externalAuthentication(authfile):
         return (parser['github']['user'], parser['github']['token'])
 
 
-def _internalAuthentication(authfile):
+def _internal_authentication(authfile):
     """Handles authentication being provided from the
     Princeton internal network.
 
@@ -137,7 +143,7 @@ def _internalAuthentication(authfile):
         tuple to enable HTTP authentication
     """
     logger.debug('Authenticating using internal information')
-    return getGitHubAuth()
+    return get_github_auth()
 
 
 class Paginator:
@@ -166,7 +172,18 @@ class Paginator:
         self.auth = auth
         self.max_pages = max_pages
 
-    def _getRequest(self, url):
+    def _get_request(self, url):
+        """ Retrieves HTTP request
+            Parameters
+            ----------
+            url : `str`
+                GitHub API URL to be accessed.
+
+            Returns
+            ------
+            response : `list` [`dict`]
+                The GitHub response for a single page.
+        """
         return requests.get(url, params=self.params, auth=self.auth)
 
     def pages(self, url):
@@ -186,14 +203,14 @@ class Paginator:
             call.
         """
         for _ in range(self.max_pages):
-            r = self._getRequest(url)
+            r = self._get_request(url)
             yield json.loads(r.text)
             if 'next' in r.links:
                 url = r.links['next']['url']
             else:
                 return
 
-    def retrieveRequestAsDict(self, url):
+    def retrieve_request_as_dict(self, url):
         """Returns the response from the provided URL, decoded from JSON.
 
         Parameters
@@ -208,7 +225,7 @@ class Paginator:
             depends on the specific GitHub API
             request being made.
         """
-        return self._getRequest(url).json()
+        return self._get_request(url).json()
 
 
 class GitHubMediator:
@@ -236,14 +253,14 @@ class GitHubMediator:
         self.prefix_url = prefix_url
         self.paginator = Paginator(params, auth, max_pages)
 
-    def getRateLimit(self):
+    def get_rate_limit(self):
         """Returns the rate limit (number of requests per hour)
         to the GitHub API server.
         """
-        result = self.paginator.retrieveRequestAsDict(RATE_LIMIT_URL)
+        result = self.paginator.retrieve_request_as_dict(RATE_LIMIT_URL)
         return result
 
-    def extractPulls(self, url):
+    def extract_pulls(self, url):
         """Retrieves details of each pull request, returning
         those that have ticket information.
 
@@ -254,22 +271,25 @@ class GitHubMediator:
 
         Returns
         -------
-        sha_tickets : `dict` (`str`: `str`)
-            mapping of commit sha to ticket
+        ticket_date : `dict` (`str`: `str`)
+            mapping of ticket ID to date
         """
-        sha_tickets = OrderedDict()
+        ticket_date = {}
         pages = self.paginator.pages(url)
         for page in pages:
             for entry in page:
-                sha = entry['base']['sha']
                 label = entry['head']['label']
+                timestamp = entry['merged_at']
+                if timestamp is None:
+                    # Pull request had been rejected - ignore
+                    continue
                 m = re.search(GITHUB_API_TICKET_REGEX, label)
                 if m is not None:
                     ticket = m.group(1)
-                    sha_tickets[sha] = ticket
-        return sha_tickets
+                    ticket_date[ticket] = timestamp
+        return ticket_date
 
-    def extractTags(self, url):
+    def extract_tags(self, url):
         """Retrieves details of each git tag
 
         Parameters
@@ -279,47 +299,69 @@ class GitHubMediator:
 
         Returns
         -------
-        sha_tags : `dict` (`str`: `str`)
-            mapping of commit sha to git tag
+        tag_commit : `dict` (`str`: `list` [`str`])
+            mapping of tag to commit sha
         """
-        sha_tag = {}
+        pattern = re.compile(TAG_REGEX)
+        tag_commit = {}
         pages = self.paginator.pages(url)
         for page in pages:
             for entry in page:
                 sha = entry['commit']['sha']
                 name = entry['name']
-                sha_tag[sha] = name
-        return sha_tag
+                if not pattern.match(name):
+                    logger.debug(f'Tag "{name}" '
+                                 'doesnt match m.n.p or m.n formats. '
+                                 'Skipping.')
+                else:
+                    tag_commit[name] = sha
+        return tag_commit
 
-    def group_tickets(self, sha_tags, sha_tickets):
-        """Relates the previously-retrieved
-        tag and pull request information
-        to create a mapping of tag to JIRA ticket.
+    def extract_commits(self, url):
+        """Retrieves merged commits
 
         Parameters
         ----------
-        sha_tags : `dict` (`str`: `str`)
-            mapping of commit sha to git tag
-        sha_tickets : `dict` (`str`: `str`)
-            mapping of commit sha to ticket
+        url : `str`
+            The URL endpoint for requesting tag information.
 
         Returns
         -------
-        tag_tickets : `dict` (`str`: `list` [`str`])
-            mapping of tag to corresponding tickets
+        commit_date : `dict` (`str`: `str`)
+            Mapping of commit sha to timestamp
         """
-        tag_tickets = {}
-        release_tag = NOT_TAGGED
-        group = []
-        tag_tickets[release_tag] = group
-        for pulls_sha in sha_tickets:
-            if pulls_sha in sha_tags:
-                release_tag = sha_tags[pulls_sha]
-                group = [sha_tickets[pulls_sha]]
-                tag_tickets[release_tag] = group
+        commit_date = {}
+        pages = self.paginator.pages(url)
+        for page in pages:
+            for entry in page:
+                sha = entry['sha']
+                timestamp = entry['commit']['committer']['date']
+                commit_date[sha] = timestamp
+        return commit_date
+
+    def tag_to_date(self, tag_commit, commit_date):
+        """Associates a tag to its timestamp
+
+        Parameters
+        ----------
+        tag_commit : `dict` (`str`: `str`)
+            mapping of tag to commit sha
+        commit_date : `dict` (`str`: `str`)
+            mapping of commit sha to timestamp
+
+        Returns
+        -------
+        tag_date : `dict` (`str`: str`)
+            mapping of tag to timestamp
+        """
+        tag_date = {}
+        for tag in tag_commit:
+            commit = tag_commit[tag]
+            if commit in commit_date:
+                tag_date[tag] = commit_date[commit]
             else:
-                group.append(sha_tickets[pulls_sha])
-        return tag_tickets
+                logger.debug(f'tag {tag} has no commit information')
+        return tag_date
 
     def process(self, repository_name):
         """Query the GitHub API for the given repository
@@ -333,16 +375,108 @@ class GitHubMediator:
 
         Returns
         -------
-        changelog : `dict` (`str`: `dict`(`str`: `set` (`str`)))
-            Maps a git tag to a ticket, and to a set of
-            repositories that have been updated for that
-            ticket.
+        changes : (`dict` (`str`: `str`), `dict`(`str`: `str`))
+            A tuple containing a mapping from tag to date,
+            and a mapping from ticket to date.
         """
         url_pulls = f'{self.prefix_url}/{repository_name}/pulls?state=closed'
         url_tags = f'{self.prefix_url}/{repository_name}/tags'
-        sha_tickets = self.extractPulls(url_pulls)
-        sha_tags = self.extractTags(url_tags)
-        return self.group_tickets(sha_tags, sha_tickets)
+        url_commits = f'{self.prefix_url}/{repository_name}/commits'
+
+        ticket_date = self.extract_pulls(url_pulls)
+
+        tag_commit = self.extract_tags(url_tags)
+        commit_date = self.extract_commits(url_commits)
+        tag_date = self.tag_to_date(tag_commit, commit_date)
+
+        return tag_date, ticket_date
+
+
+def tag_to_tickets(tag_date, ticket_date):
+    """Relates the tag-to-date and ticket-to-date
+    information to assign tickets to
+    the appropriate tag.
+
+    Parameters
+    ----------
+    tag_date : `dict` (`str`: `str`)
+        mapping of tag to date
+    ticket_date : `dict` (`str`: `str`)
+        mapping of ticket to date
+
+    Returns
+    -------
+    tag_tickets : `dict` (`str`: `list` [`str`])
+        mapping of tag to corresponding tickets
+    """
+    tag_tickets = {}
+    tag_daterange = {}
+    prev_timestamp = None
+    prev_tag = None
+    for tag, timestamp in tag_date.items():
+        tag_daterange[tag] = (None, timestamp)
+        if prev_tag is not None:
+            tag_daterange[prev_tag] = (timestamp, prev_timestamp)
+        prev_tag = tag
+        prev_timestamp = timestamp
+    found = False
+    for ticket, date in ticket_date.items():
+        # 'None' date should have been filtered out
+        assert date is not None
+        for tag, date_range in tag_daterange.items():
+            if date_within(date, date_range) is True:
+                if tag in tag_tickets:
+                    tag_tickets[tag].append(ticket)
+                else:
+                    tag_tickets[tag] = [ticket]
+                found = True
+        if not found:
+            if NOT_TAGGED in tag_tickets:
+                tag_tickets[NOT_TAGGED].append(ticket)
+            else:
+                tag_tickets[NOT_TAGGED] = [ticket]
+    return tag_tickets
+
+
+def date_within(date, date_range):
+    """Determine whether the input timestamp
+    is within the given range
+
+    Parameters
+    ----------
+    date : `str`
+        input date
+    date_range : (`str`, `str`)
+        date range
+    """
+    date_start, date_end = date_range
+
+    dt_end = str_timestamp(date_end)
+
+    # ticket date can be just a little outside
+    # of tag date, by less than DATE_TOL_MIN minutes
+    dt_target = str_timestamp(date) - datetime.timedelta(minutes=DATE_TOL_MIN)
+    if date_start is not None:
+        dt_start = str_timestamp(date_start)
+        return dt_start <= dt_target < dt_end
+    else:
+        return dt_target < dt_end
+
+
+def str_timestamp(timestamp):
+    """Converts a timestamp to a datetime object
+
+    Parameters
+    ----------
+    timestamp : `str`
+        Input timestamp
+
+    Returns
+    -------
+    date_time : `datetime`
+        Corresponding datetime object
+    """
+    return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
 
 
 def generate_changelog(repositories, mediator):
@@ -352,7 +486,7 @@ def generate_changelog(repositories, mediator):
 
     Parameters
     ----------
-    repositories : `list` [`str`]
+    repositories : `set` [`str`]
         Names of the github repositories.
     mediator : `GitHubMediator`
         Mediates requests to GitHub API.
@@ -364,13 +498,54 @@ def generate_changelog(repositories, mediator):
         repositories that have been updated for that
         ticket.
     """
-    changelog = defaultdict(lambda: defaultdict(set))
+    changelog = {}
+
+    # Generate tag-date mapping based using
+    # principal repository only.
+    tag_date_principal = {}
+
+    # This should already be checked when parsing arguments
+    assert REPO_PRINCIPAL in repositories
+
+    tag_date_principal, ticket_date = mediator.process(REPO_PRINCIPAL)
+    for tag in tag_date_principal:
+        changelog[tag] = defaultdict(set)
+    changelog[NOT_TAGGED] = defaultdict(set)
+
+    populate_changelog(changelog, REPO_PRINCIPAL,
+                       tag_date_principal, ticket_date)
+
+    repositories.remove(REPO_PRINCIPAL)
+
     for repo in repositories:
-        changes_repo = mediator.process(repo)
-        for tag in changes_repo:
-            for ticket in changes_repo[tag]:
-                changelog[tag][ticket].add(repo)
+        # Ignore tag_date information from these repos
+        # As we are using the one from the principal repo
+        _, ticket_date = mediator.process(repo)
+        populate_changelog(changelog, repo, tag_date_principal, ticket_date)
     return changelog
+
+
+def populate_changelog(changelog, repo, tag_date, ticket_date):
+    """Populates the changelog with tickets closed
+    in this repository.
+
+    Parameters
+    ----------
+    changelog : `dict` (`str`: `dict`(`str`: `set` (`str`)))
+        Maps a git tag to a ticket, and to a set of
+        repositories that have been updated for that
+        ticket.
+    repo : `str`
+        Name of the github repository.
+    tag_date : `dict` (`str`: `str`)
+        mapping of tag to date
+    ticket_date : `dict` (`str`: `str`)
+        mapping of ticket to date
+    """
+    tag_tickets = tag_to_tickets(tag_date, ticket_date)
+    for tag, tickets in tag_tickets.items():
+        for ticket in tickets:
+            changelog[tag][ticket].add(repo)
 
 
 def get_ticket_summary(ticket):
@@ -391,9 +566,9 @@ def get_ticket_summary(ticket):
     db = dbm.open(dbname, "c")
     try:
         if ticket not in db:
-            url = JIRA_API_URL + "/issue/" + ticket + "?fields=summary"
+            url = f'{JIRA_API_URL}/issue/{ticket}?fields=summary'
             logger.debug(f'JIRA URL = {url}')
-            data = json.load(urlopen(url))
+            data = requests.get(url).json()
             db[ticket] = data['fields']['summary'].encode("UTF-8")
         # json gives us a unicode string, which we need to encode for storing
         # in the database, then decode again when we load it.
@@ -404,7 +579,7 @@ def get_ticket_summary(ticket):
         db.close()
 
 
-def getGitHubAuth():
+def get_github_auth():
     """Get authentication tuple for GitHub
     Currently a hard-wired username, and an authentication token read from a
     file.
@@ -431,11 +606,6 @@ def tag_key(tagname):
     sort_key : `int`
         numerical key for sorting.
     """
-    pattern = re.compile(TAG_REGEX)
-    if not pattern.match(tagname):
-        logger.warn(f'Tag "{tagname}" '
-                    'doesnt match m.n.p or m.n formats. Skipping.')
-        return 0
     return tuple(int(i) for i in tagname.split('.'))
 
 
@@ -455,15 +625,19 @@ def write_tag(writer, tagname, tickets):
         writer.write("<h2>Not tagged</h2>")
     else:
         writer.write(f"<h2>New in {hescape(tagname)}</h2>")
+
     writer.write("<ul>")
-    for ticket in sorted(tickets):
-        summary = get_ticket_summary(ticket)
-        pkgs = ", ".join(sorted(tickets[ticket]))
-        link_text = (f"<li><a href={JIRA_URL}/browse/"
-                     f"{ticket}>{ticket}</a>: "
-                     f"{hescape(summary)} [{hescape(pkgs)}]</li>")
-        writer.write(link_text.format(ticket=ticket.upper(),
-                     summary=summary, pkgs=pkgs))
+    if not tickets:
+        writer.write("<li><i>None</i></li>")
+    else:
+        for ticket in sorted(tickets):
+            summary = get_ticket_summary(ticket)
+            pkgs = ", ".join(sorted(tickets[ticket]))
+            link_text = (f"<li><a href={JIRA_URL}/browse/"
+                         f"{ticket}>{ticket}</a>: "
+                         f"{hescape(summary)} [{hescape(pkgs)}]</li>")
+            writer.write(link_text.format(ticket=ticket.upper(),
+                         summary=summary, pkgs=pkgs))
     writer.write("</ul>")
 
 
@@ -474,7 +648,7 @@ def write_html(changelog, repositories, outfile):
     ----------
     changelog : `dict` (`str`: `dict` (`str`: `set` (`str`)))
         mapping of tag to ticket identifiers.
-    repositories: `list` [`str`]
+    repositories: `set` [`str`]
         list of git repositories
     outfile: `str`
         the name of the output file
@@ -514,12 +688,12 @@ def process(args):
     """
     # Handle logging level
     if args.loglevel is not None:
-        logLevel = getattr(lsst.log.Log, args.loglevel.upper())
-        logger.setLevel(logLevel)
+        log_level = getattr(lsst.log.Log, args.loglevel.upper())
+        logger.setLevel(log_level)
 
     # Check that repository names are valid
     repo_regex = '^[A-Za-z0-9_]+$'
-    repositories = [rr for rr in args.repositories if re.match(repo_regex, rr)]
+    repositories = {rr for rr in args.repositories if re.match(repo_regex, rr)}
     if set(repositories) != set(args.repositories):
         bad_repos = set(args.repositories) - set(repositories)
         logger.fatal(f'repositories "{bad_repos}"'
@@ -527,12 +701,20 @@ def process(args):
                      ' Exiting.')
         exit(1)
 
+    # Need to have the 'principle repository', usually pfs_utils
+    # in the repository list, otherwise for tags up to w.2020.20
+    # cannot associate tickets to tags.
+    if REPO_PRINCIPAL not in repositories:
+        logger.fatal(f'Repository {REPO_PRINCIPAL} is not in input list. '
+                     'Need this to determine ticket to tag assignment.')
+        exit(1)
+
     # With GitHub API interations, authentication is most likely needed.
     # With no authentication (the default) only 60 requests to the github API
     # can be made per hour. See https://developer.github.com/v3/#rate-limiting
-    auth_method = {'noauth': _noAuthentication,
-                   'external': _externalAuthentication,
-                   'internal': _internalAuthentication}
+    auth_method = {'noauth': _no_authentication,
+                   'external': _external_authentication,
+                   'internal': _internal_authentication}
     auth = auth_method[args.authmethod](args.authfile)
 
     mediator = GitHubMediator(GITHUB_API_BASE_URL,
@@ -542,7 +724,7 @@ def process(args):
 
     # Check whether for GitHub API calls, rate limit has been exceeded.
     # If so, cannot cannot continue.
-    r = mediator.getRateLimit()
+    r = mediator.get_rate_limit()
     remaining_requests = r['resources']['core']['remaining']
     logger.debug(f'There are {remaining_requests} '
                  'github API requests remaining.')
@@ -562,7 +744,9 @@ def main():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('repositories', nargs='+',
-                        help='list of repositories')
+                        help=('list of repositories. '
+                              'This needs to contain pfs_utils '
+                              'to determine tag-ticket assignment.'))
     parser.add_argument('--outfile', '-o', default='changelog.html',
                         help='name of output file')
     parser.add_argument("--authmethod", '-m', default='internal',
