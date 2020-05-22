@@ -167,6 +167,17 @@ class Paginator:
         self.max_pages = max_pages
 
     def _getRequest(self, url):
+        """ Retrieves HTTP request
+            Parameters
+            ----------
+            url : `str`
+                GitHub API URL to be accessed.
+
+            Returns
+            ------
+            response : `list` [`dict`]
+                The GitHub response for a single page.
+        """ 
         return requests.get(url, params=self.params, auth=self.auth)
 
     def pages(self, url):
@@ -261,7 +272,7 @@ class GitHubMediator:
         pages = self.paginator.pages(url)
         for page in pages:
             for entry in page:
-                sha = entry['base']['sha']
+                sha = entry['head']['sha']
                 label = entry['head']['label']
                 m = re.search(GITHUB_API_TICKET_REGEX, label)
                 if m is not None:
@@ -279,45 +290,88 @@ class GitHubMediator:
 
         Returns
         -------
-        sha_tags : `dict` (`str`: `str`)
-            mapping of commit sha to git tag
+        sha_tags : `dict` (`str`: `list` [`str`])
+            mapping of commit sha to git tags
         """
-        sha_tag = {}
+        pattern = re.compile(TAG_REGEX)
+        sha_tags = {}
         pages = self.paginator.pages(url)
         for page in pages:
             for entry in page:
                 sha = entry['commit']['sha']
                 name = entry['name']
-                sha_tag[sha] = name
-        return sha_tag
+                if not pattern.match(name):
+                    logger.debug(f'Tag "{name}" '
+                                 'doesnt match m.n.p or m.n formats. '
+                                 'Skipping.')
+                else:
+                    if sha not in sha_tags:
+                        sha_tags[sha] = [name]
+                    else:
+                        sha_tags[sha].append(name)
+        return sha_tags
 
-    def group_tickets(self, sha_tags, sha_tickets):
+    def extractCommits(self, url):
+        """Retrieves merged commits
+
+        Parameters
+        ----------
+        url : `str`
+            The URL endpoint for requesting tag information.
+
+        Returns
+        -------
+        sha_commits : `dict` (`str`: `str`)
+            key lists all commits in ordered sequence.
+            If the key corresponds to a merge
+            the value is the sha of the merge,
+            otherwise None.
+        """
+        sha_commits = OrderedDict()
+        pages = self.paginator.pages(url)
+        for page in pages:
+            for entry in page:
+                sha = entry['sha']
+                parents = entry['parents']
+                value = None
+                if len(parents) == 2:
+                    value = entry['parents'][1]['sha']
+                sha_commits[sha] = value
+        return sha_commits
+
+    def group_tickets(self, sha_tags, sha_tickets, sha_commits):
         """Relates the previously-retrieved
         tag and pull request information
         to create a mapping of tag to JIRA ticket.
 
         Parameters
         ----------
-        sha_tags : `dict` (`str`: `str`)
-            mapping of commit sha to git tag
+        sha_tags : `dict` (`str`: `list` [`str`])
+            mapping of commit sha to git tags
         sha_tickets : `dict` (`str`: `str`)
             mapping of commit sha to ticket
+        sha_commits : `dict` (`str`: `str`)
+            mapping of commit sha merge parent
 
         Returns
         -------
         tag_tickets : `dict` (`str`: `list` [`str`])
             mapping of tag to corresponding tickets
         """
-        tag_tickets = {}
+        tag_tickets = OrderedDict()
         release_tag = NOT_TAGGED
         group = []
         tag_tickets[release_tag] = group
-        for pulls_sha in sha_tickets:
-            if pulls_sha in sha_tags:
-                release_tag = sha_tags[pulls_sha]
-                group = [sha_tickets[pulls_sha]]
+        for commit_sha in sha_commits:
+            if commit_sha in sha_tags:
+                # In case of multiple tags for given commit,
+                # use oldest.
+                release_tag = sorted(sha_tags[commit_sha], key=tag_key)[0]
+                group = []
                 tag_tickets[release_tag] = group
-            else:
+
+            pulls_sha = sha_commits[commit_sha]
+            if pulls_sha is not None and pulls_sha in sha_tickets:
                 group.append(sha_tickets[pulls_sha])
         return tag_tickets
 
@@ -340,9 +394,11 @@ class GitHubMediator:
         """
         url_pulls = f'{self.prefix_url}/{repository_name}/pulls?state=closed'
         url_tags = f'{self.prefix_url}/{repository_name}/tags'
+        url_commits = f'{self.prefix_url}/{repository_name}/commits'
         sha_tickets = self.extractPulls(url_pulls)
         sha_tags = self.extractTags(url_tags)
-        return self.group_tickets(sha_tags, sha_tickets)
+        sha_commits = self.extractCommits(url_commits)
+        return self.group_tickets(sha_tags, sha_tickets, sha_commits)
 
 
 def generate_changelog(repositories, mediator):
@@ -364,12 +420,26 @@ def generate_changelog(repositories, mediator):
         repositories that have been updated for that
         ticket.
     """
-    changelog = defaultdict(lambda: defaultdict(set))
+
+    ticket_min_tag = {}
+    changes_repo = {}
+
     for repo in repositories:
-        changes_repo = mediator.process(repo)
-        for tag in changes_repo:
-            for ticket in changes_repo[tag]:
-                changelog[tag][ticket].add(repo)
+        changes = mediator.process(repo)
+        changes_repo[repo] = changes
+        for tag in changes:
+            for ticket in changes[tag]:
+                if (ticket not in ticket_min_tag or
+                    tag_key(tag) < tag_key(ticket_min_tag[ticket])):
+                    ticket_min_tag[ticket] = tag
+
+    changelog = defaultdict(lambda: defaultdict(set))
+    for repo in changes_repo:
+        changes = changes_repo[repo]
+        for tag in changes:
+            for ticket in changes[tag]:
+                min_tag = ticket_min_tag[ticket]
+                changelog[min_tag][ticket].add(repo)
     return changelog
 
 
@@ -431,11 +501,6 @@ def tag_key(tagname):
     sort_key : `int`
         numerical key for sorting.
     """
-    pattern = re.compile(TAG_REGEX)
-    if not pattern.match(tagname):
-        logger.warn(f'Tag "{tagname}" '
-                    'doesnt match m.n.p or m.n formats. Skipping.')
-        return 0
     return tuple(int(i) for i in tagname.split('.'))
 
 
