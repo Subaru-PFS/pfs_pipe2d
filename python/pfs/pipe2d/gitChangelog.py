@@ -13,6 +13,7 @@ import lsst.log
 from configparser import ConfigParser
 from html import escape as hescape
 import getpass
+from datetime.datetime import strptime
 
 logger = lsst.log.Log.getLogger("pfs.pipe2d.git_changelog")
 
@@ -265,20 +266,20 @@ class GitHubMediator:
 
         Returns
         -------
-        sha_tickets : `dict` (`str`: `str`)
-            mapping of commit sha to ticket
+        ticket_date : `dict` (`str`: `str`)
+            mapping of ticket ID to date
         """
-        sha_tickets = OrderedDict()
+        ticket_date = OrderedDict()
         pages = self.paginator.pages(url)
         for page in pages:
             for entry in page:
-                sha = entry['head']['sha']
                 label = entry['head']['label']
+                timestamp = entry['merged_at']
                 m = re.search(GITHUB_API_TICKET_REGEX, label)
                 if m is not None:
                     ticket = m.group(1)
-                    sha_tickets[sha] = ticket
-        return sha_tickets
+                    ticket_date[ticket] = timestamp
+        return ticket_date
 
     def extractTags(self, url):
         """Retrieves details of each git tag
@@ -290,11 +291,11 @@ class GitHubMediator:
 
         Returns
         -------
-        sha_tags : `dict` (`str`: `list` [`str`])
-            mapping of commit sha to git tags
+        tag_commit : `dict` (`str`: `list` [`str`])
+            mapping of tag to commit sha
         """
         pattern = re.compile(TAG_REGEX)
-        sha_tags = {}
+        tag_commit = {}
         pages = self.paginator.pages(url)
         for page in pages:
             for entry in page:
@@ -305,11 +306,8 @@ class GitHubMediator:
                                  'doesnt match m.n.p or m.n formats. '
                                  'Skipping.')
                 else:
-                    if sha not in sha_tags:
-                        sha_tags[sha] = [name]
-                    else:
-                        sha_tags[sha].append(name)
-        return sha_tags
+                    tag_commit[name] = sha
+        return tag_commit
 
     def extractCommits(self, url):
         """Retrieves merged commits
@@ -321,58 +319,86 @@ class GitHubMediator:
 
         Returns
         -------
-        sha_commits : `dict` (`str`: `str`)
-            key lists all commits in ordered sequence.
-            If the key corresponds to a merge
-            the value is the sha of the merge,
-            otherwise None.
+        commit_time : `dict` (`str`: `str`)
+            Mapping of commit sha to timestamp
         """
-        sha_commits = OrderedDict()
+        commit_time = {}
         pages = self.paginator.pages(url)
         for page in pages:
             for entry in page:
                 sha = entry['sha']
-                parents = entry['parents']
-                value = None
-                if len(parents) == 2:
-                    value = entry['parents'][1]['sha']
-                sha_commits[sha] = value
-        return sha_commits
+                timestamp = entry['commit']['committer']['date']
+                commit_time[sha] = timestamp
+        return commit_time
 
-    def group_tickets(self, sha_tags, sha_tickets, sha_commits):
-        """Relates the previously-retrieved
-        tag and pull request information
-        to create a mapping of tag to JIRA ticket.
+    def tagToDate(self, tag_commit, commit_time):
+        """Associates the timestamp of a tag to that tag
 
         Parameters
         ----------
-        sha_tags : `dict` (`str`: `list` [`str`])
-            mapping of commit sha to git tags
-        sha_tickets : `dict` (`str`: `str`)
-            mapping of commit sha to ticket
-        sha_commits : `dict` (`str`: `str`)
-            mapping of commit sha merge parent
+        tag_commit : `dict` (`str`: `str`)
+            mapping of tag to commit sha
+        commit_time : `dict` (`str`: `str`)
+            mapping of commit sha to timestamp
+
+        Returns
+        -------
+        tag_date : `dict` (`str`: str`)
+            mapping of tag to timestamp
+        """
+        tag_date = {}
+        for tag in tag_commit:
+            commit = tag_commit[tag]
+            if commit in commit_time:
+                tag_date[tag] = commit
+
+    def tag_to_tickets(self, tag_date, ticket_date):
+        """Relates the tag-to-date and ticket-to-date
+        information to assign tickets to
+        the appropriate tag.
+
+        Parameters
+        ----------
+        tag_date : `dict` (`str`: `str`)
+            mapping of tag to date
+        ticket_date : `dict` (`str`: `str`)
+            mapping of ticket to date
 
         Returns
         -------
         tag_tickets : `dict` (`str`: `list` [`str`])
             mapping of tag to corresponding tickets
         """
-        tag_tickets = OrderedDict()
-        release_tag = NOT_TAGGED
-        group = []
-        tag_tickets[release_tag] = group
-        for commit_sha in sha_commits:
-            if commit_sha in sha_tags:
-                # In case of multiple tags for given commit,
-                # use oldest.
-                release_tag = sorted(sha_tags[commit_sha], key=tag_key)[0]
-                group = []
-                tag_tickets[release_tag] = group
+        tag_tickets = {}
 
-            pulls_sha = sha_commits[commit_sha]
-            if pulls_sha is not None and pulls_sha in sha_tickets:
-                group.append(sha_tickets[pulls_sha])
+        tag_daterange = {}
+        prev_timestamp = None
+        prev_tag = None
+        for tag in tag_date:
+            timestamp = tag_date[tag]
+            tag_daterange[tag] = (timestamp, None)
+            if prev_tag is not None:
+                tag_daterange[prev_tag] = (prev_timestamp, timestamp)
+
+        found = False
+        for ticket in ticket_date:
+            date = ticket_date[ticket]
+            for tag in tag_daterange:
+                date_range = tag_daterange[tag]
+                if date_within(date, date_range) is True:
+                    if tag in tag_tickets:
+                        tag_tickets[tag].append(ticket)
+                    else:
+                        tag_tickets[tag] = [ticket]
+                    found = True
+
+        if not found:
+            # Assign ticket to NOT_TAGGED group
+            if NOT_TAGGED in tag_tickets:
+                tag_tickets[NOT_TAGGED].append(ticket)
+            else:
+                tag_tickets[NOT_TAGGED] = [ticket]
+
         return tag_tickets
 
     def process(self, repository_name):
@@ -399,6 +425,44 @@ class GitHubMediator:
         sha_tags = self.extractTags(url_tags)
         sha_commits = self.extractCommits(url_commits)
         return self.group_tickets(sha_tags, sha_tickets, sha_commits)
+
+
+def date_within(date, date_range):
+    """Determine whether the input timestamp
+    is within the given range
+
+    Parameters
+    ----------
+    date : `str`
+        input date
+    date_range : (`str`, `str`)
+        date range
+    """
+    date_start, date_end = date_range
+
+    datetime_start = str_timestamp(date_start)
+    datetime = str_timestamp(date)
+    if date_end is not None:
+        datetime_end = str_timestamp(date_end)
+        return datetime_start < datetime < datetime_end
+    else:
+        return datetime_start < datetime
+
+
+def str_timestamp(timestamp):
+    """Converts a timestamp to a datetime object
+
+    Parameters
+    ----------
+    timestamp : `str`
+        Input timestamp
+
+    Returns
+    -------
+    date_time : `datetime`
+        Corresponding datetime object
+    """
+    return strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
 
 
 def generate_changelog(repositories, mediator):
@@ -430,7 +494,7 @@ def generate_changelog(repositories, mediator):
         for tag in changes:
             for ticket in changes[tag]:
                 if (ticket not in ticket_min_tag or
-                    tag_key(tag) < tag_key(ticket_min_tag[ticket])):
+                        tag_key(tag) < tag_key(ticket_min_tag[ticket])):
                     ticket_min_tag[ticket] = tag
 
     changelog = defaultdict(lambda: defaultdict(set))
