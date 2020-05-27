@@ -173,16 +173,16 @@ class Paginator:
         self.max_pages = max_pages
 
     def _get_request(self, url):
-        """ Retrieves HTTP request
-            Parameters
-            ----------
-            url : `str`
-                GitHub API URL to be accessed.
+        """Retrieves HTTP request
+        Parameters
+        ----------
+        url : `str`
+            GitHub API URL to be accessed.
 
-            Returns
-            ------
-            response : `list` [`dict`]
-                The GitHub response for a single page.
+        Returns
+        ------
+        response : `list` [`dict`]
+            The GitHub response for a single page.
         """
         return requests.get(url, params=self.params, auth=self.auth)
 
@@ -264,6 +264,14 @@ class GitHubMediator:
         """Retrieves details of each pull request, returning
         those that have ticket information.
 
+        Up to but excluding tag w.2020.20, 2D DRP repositories
+        were not tagged consistently. So instead of
+        relating tickets to shas (and relate those shas to tags)
+        need to rely on datestamps on each ticket,
+        and relate that information to
+        tag date ranges provided by
+        the 'principal' repoository (usually pfs_pipe2d).
+
         Parameters
         ----------
         url : `str`
@@ -299,7 +307,7 @@ class GitHubMediator:
 
         Returns
         -------
-        tag_commit : `dict` (`str`: `list` [`str`])
+        tag_commit : `dict` (`str`: `str`)
             mapping of tag to commit sha
         """
         pattern = re.compile(TAG_REGEX)
@@ -360,7 +368,8 @@ class GitHubMediator:
             if commit in commit_date:
                 tag_date[tag] = commit_date[commit]
             else:
-                logger.debug(f'tag {tag} has no commit information')
+                logger.debug(f'Cannot find commit information for tag {tag}. '
+                             'Was tag made on a different branch to master?')
         return tag_date
 
     def process(self, repository_name):
@@ -375,9 +384,10 @@ class GitHubMediator:
 
         Returns
         -------
-        changes : (`dict` (`str`: `str`), `dict`(`str`: `str`))
-            A tuple containing a mapping from tag to date,
-            and a mapping from ticket to date.
+        tag_date : `dict` (`str`: `str`)
+            Mapping from tag to date
+        ticket_date : `dict` (`str`: `str`)
+            Mapping from ticket to date
         """
         url_pulls = f'{self.prefix_url}/{repository_name}/pulls?state=closed'
         url_tags = f'{self.prefix_url}/{repository_name}/tags'
@@ -421,10 +431,10 @@ def tag_to_tickets(tag_date, ticket_date):
         prev_timestamp = timestamp
     found = False
     for ticket, date in ticket_date.items():
-        # 'None' date should have been filtered out
-        assert date is not None
+
+        assert date is not None,  "date is None which should have been filtered out."
         for tag, date_range in tag_daterange.items():
-            if date_within(date, date_range) is True:
+            if date_within(date, date_range):
                 tag_tickets[tag].add(ticket)
                 found = True
         if not found:
@@ -442,6 +452,11 @@ def date_within(date, date_range):
         input date
     date_range : (`str`, `str`)
         date range
+
+    Returns
+    -------
+    is_within    : `bool`
+        True if input date is within range
     """
     date_start, date_end = date_range
 
@@ -503,8 +518,6 @@ def generate_changelog(repositories, mediator):
 
     tag_date_principal, ticket_date = mediator.process(REPO_PRINCIPAL)
 
-    # for tag in tag_date_principal:
-    #     changelog[tag] = defaultdict(set)
     changelog = {tag: defaultdict(set) for tag in tag_date_principal}
     changelog[NOT_TAGGED] = defaultdict(set)
 
