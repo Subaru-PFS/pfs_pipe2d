@@ -85,7 +85,7 @@ REPO_PRINCIPAL = 'pfs_pipe2d'
 """
 
 
-def _noAuthentication(authfile):
+def _no_authentication(authfile):
     """Handles situation where no GitHub API authentication
     is to be provided.
 
@@ -103,7 +103,7 @@ def _noAuthentication(authfile):
     return None
 
 
-def _externalAuthentication(authfile):
+def _external_authentication(authfile):
     """Handles authentication being provided by an external file.
 
     Parameters
@@ -128,7 +128,7 @@ def _externalAuthentication(authfile):
         return (parser['github']['user'], parser['github']['token'])
 
 
-def _internalAuthentication(authfile):
+def _internal_authentication(authfile):
     """Handles authentication being provided from the
     Princeton internal network.
 
@@ -143,7 +143,7 @@ def _internalAuthentication(authfile):
         tuple to enable HTTP authentication
     """
     logger.debug('Authenticating using internal information')
-    return getGithubAuth()
+    return get_github_auth()
 
 
 class Paginator:
@@ -172,7 +172,7 @@ class Paginator:
         self.auth = auth
         self.max_pages = max_pages
 
-    def _getRequest(self, url):
+    def _get_request(self, url):
         """ Retrieves HTTP request
             Parameters
             ----------
@@ -203,14 +203,14 @@ class Paginator:
             call.
         """
         for _ in range(self.max_pages):
-            r = self._getRequest(url)
+            r = self._get_request(url)
             yield json.loads(r.text)
             if 'next' in r.links:
                 url = r.links['next']['url']
             else:
                 return
 
-    def retrieveRequestAsDict(self, url):
+    def retrieve_request_as_dict(self, url):
         """Returns the response from the provided URL, decoded from JSON.
 
         Parameters
@@ -225,7 +225,7 @@ class Paginator:
             depends on the specific GitHub API
             request being made.
         """
-        return self._getRequest(url).json()
+        return self._get_request(url).json()
 
 
 class GitHubMediator:
@@ -253,14 +253,14 @@ class GitHubMediator:
         self.prefix_url = prefix_url
         self.paginator = Paginator(params, auth, max_pages)
 
-    def getRateLimit(self):
+    def get_rate_limit(self):
         """Returns the rate limit (number of requests per hour)
         to the GitHub API server.
         """
-        result = self.paginator.retrieveRequestAsDict(RATE_LIMIT_URL)
+        result = self.paginator.retrieve_request_as_dict(RATE_LIMIT_URL)
         return result
 
-    def extractPulls(self, url):
+    def extract_pulls(self, url):
         """Retrieves details of each pull request, returning
         those that have ticket information.
 
@@ -289,7 +289,7 @@ class GitHubMediator:
                     ticket_date[ticket] = timestamp
         return ticket_date
 
-    def extractTags(self, url):
+    def extract_tags(self, url):
         """Retrieves details of each git tag
 
         Parameters
@@ -383,9 +383,9 @@ class GitHubMediator:
         url_tags = f'{self.prefix_url}/{repository_name}/tags'
         url_commits = f'{self.prefix_url}/{repository_name}/commits'
 
-        ticket_date = self.extractPulls(url_pulls)
+        ticket_date = self.extract_pulls(url_pulls)
 
-        tag_commit = self.extractTags(url_tags)
+        tag_commit = self.extract_tags(url_tags)
         commit_date = self.extract_commits(url_commits)
         tag_date = self.tag_to_date(tag_commit, commit_date)
 
@@ -576,7 +576,7 @@ def get_ticket_summary(ticket):
         db.close()
 
 
-def getGithubAuth():
+def get_github_auth():
     """Get authentication tuple for GitHub
     Currently a hard-wired username, and an authentication token read from a
     file.
@@ -709,9 +709,9 @@ def process(args):
     # With GitHub API interations, authentication is most likely needed.
     # With no authentication (the default) only 60 requests to the github API
     # can be made per hour. See https://developer.github.com/v3/#rate-limiting
-    auth_method = {'noauth': _noAuthentication,
-                   'external': _externalAuthentication,
-                   'internal': _internalAuthentication}
+    auth_method = {'noauth': _no_authentication,
+                   'external': _external_authentication,
+                   'internal': _internal_authentication}
     auth = auth_method[args.authmethod](args.authfile)
 
     mediator = GitHubMediator(GITHUB_API_BASE_URL,
@@ -721,7 +721,7 @@ def process(args):
 
     # Check whether for GitHub API calls, rate limit has been exceeded.
     # If so, cannot continue.
-    r = mediator.getRateLimit()
+    r = mediator.get_rate_limit()
     remaining_requests = r['resources']['core']['remaining']
     logger.debug(f'There are {remaining_requests} '
                  'github API requests remaining.')
