@@ -764,7 +764,7 @@ def main():
                         help="Authentication method.")
     parser.add_argument('--authfile', '-a',
                         help='file providing GitHub API authentication')
-    parser.add_argument("-L", "--loglevel",
+    parser.add_argument("--loglevel", "-L",
                         choices=['trace', 'debug', 'info',
                                  'warn', 'error', 'fatal'],
                         help=("logging level"))
