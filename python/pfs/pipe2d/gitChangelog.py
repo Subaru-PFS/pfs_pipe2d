@@ -66,9 +66,10 @@ The JIRA ticket name is stored in the GitHub API in the above
 format. This is used to parse the ticket number.
 """
 
-TAG_REGEX = r"^([0-9]+)\.([0-9]+)(\.[0-9]+)?$"
+TAG_REGEX = r"^([0-9]+)\.([0-9]+)(\.([0-9]+))?|w\.([0-9]{4})\.([0-9]{2})$"
 """Git tag regular expression (`str`).
-The format of a tag. In the above case, M.m[.p] for releases.
+The format of a tag. In the above case, M.m[.p] for releases,
+or w.YYYY.WW for weeklies
 """
 
 NOT_TAGGED = 'NOT-TAGGED'
@@ -616,7 +617,8 @@ def tag_key(tagname):
     sort_key : `int`
         numerical key for sorting.
     """
-    return tuple(int(i) for i in tagname.split('.'))
+    return tuple(int(i) for i in re.match(TAG_REGEX, tagname).groups()
+                 if i and i.isdigit())
 
 
 def write_tag(writer, tagname, tickets):
