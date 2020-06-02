@@ -403,7 +403,7 @@ class GitHubMediator:
         return tag_date, ticket_date
 
 
-def tag_to_tickets(tag_date, ticket_date):
+def tag_to_tickets(tag_date, tag_date_principal, ticket_date):
     """Relates the tag-to-date and ticket-to-date
     information to assign tickets to
     the appropriate tag.
@@ -411,7 +411,9 @@ def tag_to_tickets(tag_date, ticket_date):
     Parameters
     ----------
     tag_date : `dict` (`str`: `str`)
-        mapping of tag to date
+        mapping of tag to date for current repo
+    tag_date_principal : `dict` (`str`: `str`)
+        mapping of tag to date for principal repo
     ticket_date : `dict` (`str`: `str`)
         mapping of ticket to date
 
@@ -424,7 +426,9 @@ def tag_to_tickets(tag_date, ticket_date):
     tag_daterange = {}
     prev_timestamp = None
     prev_tag = None
-    for tag, timestamp in tag_date.items():
+    for tag, timestamp in tag_date_principal.items():
+        if tag_date and tag in tag_date:
+            timestamp = tag_date[tag]
         tag_daterange[tag] = (None, timestamp)
         if prev_tag is not None:
             tag_daterange[prev_tag] = (timestamp, prev_timestamp)
@@ -523,20 +527,22 @@ def generate_changelog(repositories, mediator):
     changelog[NOT_TAGGED] = defaultdict(set)
 
     populate_changelog(changelog, REPO_PRINCIPAL,
-                       tag_date_principal, ticket_date)
+                       None, tag_date_principal, ticket_date)
 
     repositories.remove(REPO_PRINCIPAL)
 
     for repo in repositories:
         # Ignore tag_date information from these repos
         # As we are using the one from the principal repo
-        _, ticket_date = mediator.process(repo)
-        populate_changelog(changelog, repo, tag_date_principal, ticket_date)
+        tag_date, ticket_date = mediator.process(repo)
+        populate_changelog(changelog, repo, tag_date,
+                           tag_date_principal, ticket_date)
 
     return changelog
 
 
-def populate_changelog(changelog, repo, tag_date, ticket_date):
+def populate_changelog(changelog, repo, tag_date,
+                       tag_date_principal, ticket_date):
     """Populates the changelog with tickets closed
     in this repository.
 
@@ -549,11 +555,13 @@ def populate_changelog(changelog, repo, tag_date, ticket_date):
     repo : `str`
         Name of the github repository.
     tag_date : `dict` (`str`: `str`)
-        mapping of tag to date
+        mapping of tag to date for this repo
+    tag_date_principal : `dict` (`str`: `str`)
+        mapping of tag to date for principal repo
     ticket_date : `dict` (`str`: `str`)
         mapping of ticket to date
     """
-    tag_tickets = tag_to_tickets(tag_date, ticket_date)
+    tag_tickets = tag_to_tickets(tag_date, tag_date_principal, ticket_date)
     for tag, tickets in tag_tickets.items():
         for ticket in tickets:
             changelog[tag][ticket].add(repo)
