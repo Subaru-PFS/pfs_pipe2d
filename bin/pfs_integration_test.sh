@@ -93,6 +93,8 @@ if $USE_GIT; then
             git -c lfs.batch=true clone --branch=master --single-branch https://github.com/Subaru-PFS/drp_stella_data
         fi
     fi
+
+    setup -jr drp_stella_data
 else
     if [ -n $BRANCH ]; then
     echo "Ignoring branch $BRANCH as you chose -G" >&2
@@ -105,6 +107,12 @@ if [ $CORES = 1 ]; then
 else
     batchArgs="--batch-type=smp --cores $CORES --doraise"
     runArgs="-j $CORES --doraise"
+fi
+
+if ( $CLEANUP ); then
+    cleanFlag="--clean"
+else
+    cleanFlag=""
 fi
 
 export OMP_NUM_THREADS=1
@@ -122,32 +130,27 @@ if ( $BUILD_CALIBS ); then
         $drp_stella_data/raw/PFFA*.fits \
         -c clobber=True register.ignore=True
 
-    ingestCalibs.py $TARGET --calib $TARGET/CALIB --validity 1800 \
-            $drp_stella_data/raw/detectorMap-sim-*.fits --mode=copy || exit 1
-
     # Build calibs
-    calibsArgs=
-    if ( ! $CLEANUP ); then
-        calibsArgs="-n"
-    fi
-    pfs_build_calibs.sh -r integration -c $CORES $calibsArgs \
-        -b "field=BIAS" \
-        -d "field=DARK" \
-        -f "field=FLAT" \
-        -F "field=FLAT_ODD" -F "field=FLAT_EVEN" \
-        -a "field=ARC" \
-        $TARGET
+    generateCommands.py "$TARGET" \
+        "$PFS_PIPE2D_DIR"/examples/integration_test.yaml \
+        calib.sh \
+        --rerun="$RERUN" --init --blocks=test_calib \
+        -j "$CORES" $cleanFlag
+
+    sh calib.sh
 fi
 
 # Detrend only
 detrend.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/detrend --id visit=25 $runArgs || exit 1
 
 # End-to-end pipeline
-reduceExposure.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
-mergeArms.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
-calculateReferenceFlux.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
-fluxCalibrate.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
-coaddSpectra.py $TARGET --calib $TARGET/CALIB --rerun $RERUN/pipeline --id field=OBJECT $runArgs || exit 1
+generateCommands.py "$TARGET" \
+    "$PFS_PIPE2D_DIR"/examples/integration_test.yaml \
+    science.sh \
+    --rerun="$RERUN" --blocks=test_science \
+    -j "$CORES" $cleanFlag
+
+sh science.sh
 
 python -c "
 import matplotlib
