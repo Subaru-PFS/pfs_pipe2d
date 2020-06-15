@@ -56,50 +56,74 @@ mkdir -p $WORKDIR
 mkdir -p $WORKDIR/CALIB
 echo "lsst.obs.pfs.PfsMapper" > $WORKDIR/_mapper
 ingestPfsImages.py $WORKDIR $DATADIR/PFFA*.fits
-ingestPfsCalibs.py $WORKDIR --calib $WORKDIR/CALIB --validity 1800 --mode=copy $DATADIR/detectorMap-*.fits
 
 # Build calibs
-calibsArgs=""
-( $DEVELOPER ) && calibsArgs+=" -D"
-( ! $CLEANUP ) && calibsArgs+=" -n"
+develFlag=""
+cleanFlag=""
+( $DEVELOPER ) && develFlag="--devel"
+( $CLEANUP ) && cleanFlag="--clean"
+
+# DATADIR (where detectorMap files reside) has to be exported
+# because it is used in the spec file.
+export DATADIR
 
 # Calibs for brn
-pfs_build_calibs.sh -r $RERUN/calib/brn -c $CORES -C $WORKDIR/CALIB $calibsArgs \
-    -b "field=BIAS arm=b^r^n" \
-    -d "field=DARK arm=b^r^n" \
-    -f "field=FLAT arm=b^r^n" \
-    -F "visit=35" -F "visit=37" \
-    $WORKDIR
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/calibs_for_brn.sh \
+    --rerun=$RERUN/calib/brn \
+    --init --blocks=calibs_for_brn \
+    -j $CORES $develFlag $cleanFlag
+
+sh $WORKDIR/calibs_for_brn.sh
+
 # Calibs for m
-pfs_build_calibs.sh -r $RERUN/calib/m -c $CORES -C $WORKDIR/CALIB $calibsArgs \
-    -F "visit=36 arm=m" -F "visit=38 arm=m" \
-    $WORKDIR
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/calibs_for_m.sh \
+    --rerun=$RERUN/calib/m \
+    --blocks=calibs_for_m \
+    -j $CORES $develFlag $cleanFlag
+
+sh $WORKDIR/calibs_for_m.sh
 
 # Run calibs over again just with for the arcs: we want to preserve their outputs so we can test the results
-pfs_build_calibs.sh -r $RERUN/calib/brn -c $CORES -C $WORKDIR/CALIB $calibsArgs -n \
-    -a "visit=39..45:2" \
-    $WORKDIR
-pfs_build_calibs.sh -r $RERUN/calib/m -c $CORES -C $WORKDIR/CALIB $calibsArgs -n \
-    -a "visit=40..46:2 arm=m" \
-    $WORKDIR
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/arc_brn.sh \
+    --rerun=$RERUN/calib/brn \
+    --blocks=arc_brn \
+    -j $CORES $develFlag
 
-runArgs="--doraise -j $CORES"
-( $DEVELOPER ) && runArgs+=" --clobber-config --no-versions"
+sh $WORKDIR/arc_brn.sh
+
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/arc_m.sh \
+    --rerun=$RERUN/calib/m \
+    --blocks=arc_m \
+    -j $CORES $develFlag
+
+sh $WORKDIR/arc_m.sh
 
 # Run the pipeline on brn
-id_brn="visit=$(cat $HERE/brn_visits.dat)"
-reduceExposure.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/brn --id $id_brn $runArgs || exit 1
-mergeArms.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/brn --id $id_brn $runArgs || exit 1
-calculateReferenceFlux.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/brn --id $id_brn $runArgs || exit 1
-fluxCalibrate.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/brn --id $id_brn $runArgs || exit 1
-coaddSpectra.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/brn --id $id_brn $runArgs || exit 1
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/pipeline_on_brn.sh \
+    --rerun=$RERUN/pipeline/brn \
+    --blocks=pipeline_on_brn \
+    -j $CORES $develFlag
+
+sh $WORKDIR/pipeline_on_brn.sh
 
 # Run the pipeline on bmn
-id_bmn="visit=$(cat $HERE/bmn_visits.dat)"
-reduceExposure.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
-mergeArms.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
-calculateReferenceFlux.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
-fluxCalibrate.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
-coaddSpectra.py $WORKDIR --calib $WORKDIR/CALIB --rerun $RERUN/pipeline/bmn --id $id_bmn $runArgs || exit 1
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/pipeline_on_bmn.sh \
+    --rerun=$RERUN/pipeline/bmn \
+    --blocks=pipeline_on_bmn \
+    -j $CORES $develFlag
+
+sh $WORKDIR/pipeline_on_bmn.sh
 
 $HERE/test_weekly.py --raw=$DATADIR --rerun=$WORKDIR/rerun/$RERUN

@@ -1,7 +1,9 @@
+from .. import generateCommands
+
 import os
 import re
 
-__all__ = ("getIdValues", "getBrnVisits", "getBmnVisits")
+__all__ = ("getIdValues", "getVisitsByBlockName", "getBrnVisits", "getBmnVisits")
 
 
 def getIdValues(text):
@@ -15,9 +17,9 @@ def getIdValues(text):
 
     Parameters
     ----------
-    text : `str`
+    text : `list` of `str`
         Text with the list of visits.
-    
+
     Returns
     -------
     visits : `list` of `int`
@@ -39,6 +41,30 @@ def getIdValues(text):
     return visits
 
 
+def getVisitsByBlockName(blockName):
+    """Return the list of visit numbers for ``blockName`` in the weekly.
+
+    Parameters
+    ----------
+    blockName : `str`
+        One of the science block names defined in ``examples/weekly.yaml``.
+
+    Returns
+    -------
+    visits : `list` of `int`
+        Visit numbers.
+    """
+    filename = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "examples", "weekly.yaml")
+    initSource, calibBlocks, scienceBlocks = generateCommands.processYaml(filename)
+    idList = scienceBlocks[blockName].source.id
+    if not (len(idList) == 1 and idList[0].startswith("visit=")):
+        raise RuntimeError(
+            f"examples/weekly.yaml: 'id' field of scienceBlock '{blockName}' must be 'visit=...'")
+
+    idStr = idList[0][len("visit="):]
+    return getIdValues([idStr])
+
+
 def getBrnVisits():
     """Return the list of visit numbers for BRN data in the weekly
 
@@ -47,9 +73,7 @@ def getBrnVisits():
     visits : `list` of `int`
         Visit numbers.
     """
-    filename = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "weekly", "brn_visits.dat")
-    with open(filename) as fd:
-        return getIdValues(fd.readlines())
+    return getVisitsByBlockName("pipeline_on_brn")
 
 
 def getBmnVisits():
@@ -60,6 +84,4 @@ def getBmnVisits():
     visits : `list` of `int`
         Visit numbers.
     """
-    filename = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "weekly", "bmn_visits.dat")
-    with open(filename) as fd:
-        return getIdValues(fd.readlines())
+    return getVisitsByBlockName("pipeline_on_bmn")
