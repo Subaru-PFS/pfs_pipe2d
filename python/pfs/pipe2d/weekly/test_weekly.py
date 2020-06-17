@@ -20,7 +20,7 @@ weeklyRerun = None
 @classParameters(configuration=("brn", "bmn"))
 class ProductionTestCase(lsst.utils.tests.TestCase):
     def setUp(self):
-        self.butler = Butler(os.path.join(weeklyRerun, "pipeline", self.configuration))
+        self.butler = Butler(os.path.join(weeklyRerun, "pipeline", self.configuration, "pipeline"))
         self.visits = dict(brn=getBrnVisits, bmn=getBmnVisits)[self.configuration]()
         self.design = PfsDesign.read(1, weeklyRaw)
 
@@ -81,7 +81,7 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
 )
 class ArcTestCase(lsst.utils.tests.TestCase):
     def setUp(self):
-        self.butler = Butler(os.path.join(weeklyRerun, "calib", self.arms, "arc"))
+        self.butler = Butler(os.path.join(weeklyRerun, "calib", self.arms, "detectorMap"))
 
     def tearDown(self):
         del self.butler

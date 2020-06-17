@@ -306,7 +306,7 @@ class InitSource:
             detectorMaps.append(os.path.join(initDir, self.detectorMapFmt.format(arm=arm)))
 
         command = [
-            "ingestCalibs.py",
+            "ingestPfsCalibs.py",
             dataDir,
             f"--output={os.path.join(dataDir, calib)}",
             f"--validity={DEFAULT_CALIB_VALIDITY}",
@@ -1205,7 +1205,7 @@ def ingestCalibs(
         Overwrite if already ingested.
     """
     command = [
-        "ingestCalibs.py",
+        "ingestPfsCalibs.py",
         dataDir,
         f"--output={os.path.join(dataDir, calib)}",
         f"--validity={validity}",

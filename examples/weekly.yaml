@@ -1,0 +1,54 @@
+# To run generateCommands.py with this spec file,
+# you have to set environment variable DATADIR,
+# in which initial detectorMap files reside.
+
+#
+# initial detectorMap
+#
+# The files are to be found in dirName, taken to be relative to --dataDir if
+# not an absolute path
+#
+init:
+  dirName: "$DATADIR"
+  arms: [b1, r1, n1, m1]
+  detectorMapFmt: "detectorMap-sim-{arm}.fits"
+
+#
+# Blocks of data which are used together to update the calibrations
+#
+calibBlocks:
+  calibs_for_brn:
+    bias:
+      id: ["field=BIAS", "arm=b^r^n"]
+    dark:
+      id: ["field=DARK", "arm=b^r^n"]
+    flat:
+      id: ["field=FLAT", "arm=b^r^n"]
+    fiberTrace:
+      group:
+        -
+          id: "visit=35"
+        -
+          id: "visit=37"
+  calibs_for_m:
+    fiberTrace:
+      group:
+        -
+          id: ["visit=36", "arm=m"]
+        -
+          id: ["visit=38", "arm=m"]
+  arc_brn:
+    detectorMap:
+      id: "visit=39..45:2"
+  arc_m:
+    detectorMap:
+      id: ["visit=40..46:2", "arm=m"]
+
+#
+# Blocks of science pipelines
+#
+scienceBlocks:
+  pipeline_on_brn:
+    id: "visit=47^48^49^53^54^57"
+  pipeline_on_bmn:
+    id: "visit=50^51^52^55^56^58"
