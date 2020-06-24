@@ -64,7 +64,8 @@ def main():
     parser.add_argument("output", type=str, help="Path to output file (shell script)")
     parser.add_argument("--init", action="store_true", help="Install initial calibs")
     parser.add_argument("--blocks", type=str, nargs="+", help="Blocks to execute")
-    parser.add_argument("--calib", type=str, default="CALIB", help="Name of output calibration directory")
+    parser.add_argument("--calib", type=str,
+                        help="Name of output calibration directory (default: dataDir/CALIB")
     parser.add_argument("--calibTypes", type=str, nargs="+", default=[], choices=CalibBlock.calibTypes,
                         help="Types of calibs to process")
     parser.add_argument("--clean", action="store_true",
@@ -308,7 +309,7 @@ class InitSource:
         command = [
             "ingestPfsCalibs.py",
             dataDir,
-            f"--output={os.path.join(dataDir, calib)}",
+            f"--output={calib}",
             f"--validity={DEFAULT_CALIB_VALIDITY}",
             "--create",
             "--doraise",
@@ -433,7 +434,7 @@ class CalibSource:
         command = [
             self.commandName,
             dataDir,
-            f"--calib={os.path.join(dataDir, calib)}",
+            f"--calib={calib}",
             f"--rerun={rerun}",
             "--doraise",
             "--batch-type=smp", f"--cores={processes}"]
@@ -616,7 +617,7 @@ class BootstrapSource(
             command = [
                 self.commandName,
                 dataDir,
-                f"--calib={os.path.join(dataDir, calib)}",
+                f"--calib={calib}",
                 f"--rerun={rerun}",
                 "--doraise",
                 f"-j{processes}"]
@@ -815,7 +816,7 @@ class DetectorMapSource(
         command = [
             self.commandName,
             dataDir,
-            f"--calib={os.path.join(dataDir, calib)}",
+            f"--calib={calib}",
             f"--rerun={rerun}",
             "--doraise",
             f"-j{processes}"]
@@ -1031,7 +1032,7 @@ class ScienceStep:
         command = [
             self.commandName,
             dataDir,
-            f"--calib={os.path.join(dataDir, calib)}",
+            f"--calib={calib}",
             f"--rerun={rerun}",
             "--doraise",
             f"-j{processes}"]
@@ -1207,7 +1208,7 @@ def ingestCalibs(
     command = [
         "ingestPfsCalibs.py",
         dataDir,
-        f"--output={os.path.join(dataDir, calib)}",
+        f"--output={calib}",
         f"--validity={validity}",
         "--doraise",
         f"--mode={copyMode}"]
@@ -1375,7 +1376,7 @@ def generateCommands(
         specFile: str,
         init: bool = False,
         blocks: Iterable[str] = [],
-        calib: str = "CALIB",
+        calib: Optional[str] = None,
         calibTypes: Iterable[str] = [],
         clean: bool = False,
         devel: bool = False,
@@ -1400,8 +1401,8 @@ def generateCommands(
     blocks : `Iterable[str]`
         Blocks to execute.
         If this is empty, all blocks are executed.
-    calib : `str`
-        Name of output calibration directory.
+    calib : `Optional[str]`
+        Name of output calibration directory. (default: ``dataDir``/CALIB)
     calibTypes : `Iterable[str]`
         Types of calibs to process.
         If this is empty, all calibs are processed.
@@ -1428,17 +1429,22 @@ def generateCommands(
 
     logger = logger.getChild("generateCommands")
 
-    initSource, calibBlocks, scienceBlocks = processYaml(specFile)
-    possibleBlocks = unique(list(calibBlocks.keys()) + list(scienceBlocks.keys()))
-    if blocks is None:
-        blocks = possibleBlocks
-
     dataDir = os.path.abspath(dataDir)
     if not os.path.exists(dataDir):
         if force:
             logger.warning("'%s' doesn't exist", dataDir)
         else:
             raise RuntimeError(f"'{dataDir}' doesn't exist")
+
+    if calib is None:
+        calib = os.path.join(dataDir, "CALIB")
+    else:
+        calib = os.path.abspath(calib)
+
+    initSource, calibBlocks, scienceBlocks = processYaml(specFile)
+    possibleBlocks = unique(list(calibBlocks.keys()) + list(scienceBlocks.keys()))
+    if blocks is None:
+        blocks = possibleBlocks
 
     unrecognisedBlocks = set(blocks) - set(possibleBlocks)
     if unrecognisedBlocks:
