@@ -64,7 +64,8 @@ def main():
     parser.add_argument("output", type=str, help="Path to output file (shell script)")
     parser.add_argument("--init", action="store_true", help="Install initial calibs")
     parser.add_argument("--blocks", type=str, nargs="+", help="Blocks to execute")
-    parser.add_argument("--calib", type=str, default="CALIB", help="Name of output calibration directory")
+    parser.add_argument("--calib", type=str,
+                        help="Name of output calibration directory (default: dataDir/CALIB")
     parser.add_argument("--calibTypes", type=str, nargs="+", default=[], choices=CalibBlock.calibTypes,
                         help="Types of calibs to process")
     parser.add_argument("--clean", action="store_true",
@@ -78,6 +79,8 @@ def main():
     parser.add_argument("-j", "--processes", type=int, default=1, help="Number of processes to use")
     parser.add_argument("-L", "--loglevel", type=str, choices=list(LogLevel.__members__), default="INFO",
                         help="How chatty should I be?")
+    parser.add_argument("--overwriteCalib", action="store_true",
+                        help="Overwrite old calibs on ingestion")
     parser.add_argument("--rerun", type=str, default="noname",
                         help="Name of rerun to use")
     parser.add_argument("--scienceSteps", type=str, nargs="+", default=[], choices=ScienceBlock.steps,
@@ -308,7 +311,7 @@ class InitSource:
         command = [
             "ingestPfsCalibs.py",
             dataDir,
-            f"--output={os.path.join(dataDir, calib)}",
+            f"--output={calib}",
             f"--validity={DEFAULT_CALIB_VALIDITY}",
             "--create",
             "--doraise",
@@ -412,7 +415,7 @@ class CalibSource:
 
     def execute(
             self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            processes: int = 1, devel: bool = False):
+            *, processes: int = 1, devel: bool = False):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -433,7 +436,7 @@ class CalibSource:
         command = [
             self.commandName,
             dataDir,
-            f"--calib={os.path.join(dataDir, calib)}",
+            f"--calib={calib}",
             f"--rerun={rerun}",
             "--doraise",
             "--batch-type=smp", f"--cores={processes}"]
@@ -444,7 +447,9 @@ class CalibSource:
 
         print(f"{shellCommand(command)}", file=fout)
 
-    def ingest(self, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str):
+    def ingest(
+            self, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str,
+            *, overwrite: bool):
         """Put to ``fout`` commands to ingest this calib.
 
         Parameters
@@ -459,8 +464,25 @@ class CalibSource:
             Name of rerun.
         copyMode : `str`
             How to move files into calibration directory.
+        overwrite : `bool`
+            Overwrite old calibs on ingestion.
+            This argument is ignored if ``self.doOverwrite`` is True.
         """
-        ingestCalibs(fout, self.typeName, dataDir, calib, rerun, copyMode, self.validity)
+        command = [
+            "ingestPfsCalibs.py",
+            dataDir,
+            f"--output={calib}",
+            f"--validity={self.validity}",
+            "--doraise",
+            f"--mode={copyMode}"]
+
+        if overwrite or self.doOverwrite:
+            command += [
+                "--config", "clobber=True", "register.ignore=True"]
+
+        filedir = os.path.join(dataDir, "rerun", rerun, self.outputSubdir)
+
+        print(f"{shellCommand(command)} -- {shlex.quote(filedir)}/*.fits", file=fout)
 
     def clean(self, fout: TextIO, dataDir: str, rerun: str):
         """Put to ``fout`` commands to remove byproducts.
@@ -476,6 +498,23 @@ class CalibSource:
         """
         command = ["rm", "-r", "-f", os.path.join(dataDir, "rerun", rerun)]
         print(shellCommand(command), file=fout)
+
+    @property
+    def outputSubdir(self) -> str:
+        """Name of subdirectory where calibs are output (`str`, read-only)
+
+        Output files are expected to be under
+        ``rerun/RERUNNAME/{self.outputSubdir}``.
+        """
+        return self.typeName.upper()
+
+    @property
+    def doOverwrite(self) -> bool:
+        """Always overwrite old calibs? (`bool`, read-only)
+
+        ``self.ingest()`` ignores its `overwrite` argument if this is True.
+        """
+        return False
 
 
 @export
@@ -594,7 +633,7 @@ class BootstrapSource(
 
     def execute(
             self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            processes: int = 1, devel: bool = False):
+            *, processes: int = 1, devel: bool = False):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -616,7 +655,7 @@ class BootstrapSource(
             command = [
                 self.commandName,
                 dataDir,
-                f"--calib={os.path.join(dataDir, calib)}",
+                f"--calib={calib}",
                 f"--rerun={rerun}",
                 "--doraise",
                 f"-j{processes}"]
@@ -628,25 +667,22 @@ class BootstrapSource(
 
             print(f"{shellCommand(command)}", file=fout)
 
-    def ingest(self, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str):
-        """Put to ``fout`` commands to ingest this calib.
+    @property
+    def outputSubdir(self) -> str:
+        """Name of subdirectory where calibs are output (`str`, read-only)
 
-        Parameters
-        ----------
-        fout : `TextIO`
-            Output file where to write the command.
-        dataDir : `str`
-            Root of data repository.
-        calib : `str`
-            Name of output calibration directory.
-        rerun : `str`
-            Name of rerun.
-        copyMode : `str`
-            How to move files into calibration directory.
+        Output files are expected to be under
+        ``rerun/RERUNNAME/{self.outputSubdir}``.
         """
-        ingestCalibs(
-            fout, "detectorMap", dataDir, calib, rerun, copyMode, self.validity,
-            overwrite=True)
+        return "DETECTORMAP"
+
+    @property
+    def doOverwrite(self) -> bool:
+        """Always overwrite old calibs? (`bool`, read-only)
+
+        ``self.ingest()`` ignores its `overwrite` argument if this is True.
+        """
+        return True
 
 
 class _FiberTraceNoCombineSource(
@@ -731,7 +767,7 @@ class FiberTraceSource(
 
     def execute(
             self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            processes: int = 1, devel: bool = False):
+            *, processes: int = 1, devel: bool = False):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -768,23 +804,14 @@ class FiberTraceSource(
             """)
             print(command[1:].rstrip(), file=fout)
 
-    def ingest(self, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str):
-        """Put to ``fout`` commands to ingest this calib.
+    @property
+    def outputSubdir(self) -> str:
+        """Name of subdirectory where calibs are output (`str`, read-only)
 
-        Parameters
-        ----------
-        fout : `TextIO`
-            Output file where to write the command.
-        dataDir : `str`
-            Root of data repository.
-        calib : `str`
-            Name of output calibration directory.
-        rerun : `str`
-            Name of rerun.
-        copyMode : `str`
-            How to move files into calibration directory.
+        Output files are expected to be under
+        ``rerun/RERUNNAME/{self.outputSubdir}``.
         """
-        ingestCalibs(fout, "FIBERTRACE/COMBINED", dataDir, calib, rerun, copyMode, self.validity)
+        return "FIBERTRACE/COMBINED"
 
 
 @export
@@ -794,7 +821,7 @@ class DetectorMapSource(
 
     def execute(
             self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            processes: int = 1, devel: bool = False):
+            *, processes: int = 1, devel: bool = False):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -815,7 +842,7 @@ class DetectorMapSource(
         command = [
             self.commandName,
             dataDir,
-            f"--calib={os.path.join(dataDir, calib)}",
+            f"--calib={calib}",
             f"--rerun={rerun}",
             "--doraise",
             f"-j{processes}"]
@@ -826,26 +853,13 @@ class DetectorMapSource(
 
         print(f"{shellCommand(command)}", file=fout)
 
-    def ingest(self, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str):
-        """Put to ``fout`` commands to ingest this calib.
-        Ingesting this detectorMap may need to overwrite initial detectorMap.
+    @property
+    def doOverwrite(self) -> bool:
+        """Always overwrite old calibs? (`bool`, read-only)
 
-        Parameters
-        ----------
-        fout : `TextIO`
-            Output file where to write the command.
-        dataDir : `str`
-            Root of data repository.
-        calib : `str`
-            Name of output calibration directory.
-        rerun : `str`
-            Name of rerun.
-        copyMode : `str`
-            How to move files into calibration directory.
+        ``self.ingest()`` ignores its `overwrite` argument if this is True.
         """
-        ingestCalibs(
-            fout, self.typeName, dataDir, calib, rerun, copyMode, self.validity,
-            overwrite=True)
+        return True
 
 
 @export
@@ -884,7 +898,8 @@ class CalibBlock:
 
     def execute(
             self, logger: lsst.log.Log, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str,
-            calibTypes: Iterable[str] = [], processes: int = 1, clean: bool = False, devel: bool = False):
+            calibTypes: Iterable[str] = [],
+            *, processes: int = 1, clean: bool = False, devel: bool = False, overwrite: bool = False):
         """Put to ``fout`` commands to construct and ingest calibs.
 
         Parameters
@@ -910,6 +925,8 @@ class CalibBlock:
             Clean up byproducts after ingesting calibs.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        overwrite : `bool`
+            Overwrite old calibs on ingestion.
         """
         calibTypes = set(calibTypes)
         if calibTypes:
@@ -924,7 +941,7 @@ class CalibBlock:
                 self.sources[typeName].execute(
                     fout, dataDir, calib, f"{rerun}/{typeName}", processes=processes, devel=devel)
                 self.sources[typeName].ingest(
-                    fout, dataDir, calib, f"{rerun}/{typeName}", copyMode)
+                    fout, dataDir, calib, f"{rerun}/{typeName}", copyMode, overwrite=overwrite)
                 if clean:
                     self.sources[typeName].clean(fout, dataDir, f"{rerun}/{typeName}")
 
@@ -1008,7 +1025,7 @@ class ScienceStep:
 
     def execute(
             self, fout: TextIO, source: SourceFilter, dataDir: str, calib: str, rerun: str,
-            processes: int = 1, devel: bool = False):
+            *, processes: int = 1, devel: bool = False):
         """Put to ``fout`` commands for this step.
 
         Parameters
@@ -1031,7 +1048,7 @@ class ScienceStep:
         command = [
             self.commandName,
             dataDir,
-            f"--calib={os.path.join(dataDir, calib)}",
+            f"--calib={calib}",
             f"--rerun={rerun}",
             "--doraise",
             f"-j{processes}"]
@@ -1132,7 +1149,8 @@ class ScienceBlock:
 
     def execute(
             self, logger: lsst.log.Log, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            steps: Iterable[str] = [], processes: int = 1, devel: bool = False):
+            steps: Iterable[str] = [],
+            *, processes: int = 1, devel: bool = False):
         """Put to ``fout`` commands to execute this block.
 
         Parameters
@@ -1178,47 +1196,6 @@ def getDevelopmentOptions() -> List[str]:
     options : `List[str]`
     """
     return ["--no-versions", "--clobber-config"]
-
-
-def ingestCalibs(
-        fout: TextIO, calibType: str, dataDir: str, calib: str, rerun: str, copyMode: str, validity: int,
-        *, overwrite: bool = False):
-    """Put to ``fout`` a command to ingest calibs existing under ``rerun``.
-
-    Parameters
-    ----------
-    fout : `TextIO`
-        Output file where to write the command.
-    calibType : `str`
-        Like "flat", "fiberTrace", etc.
-    dataDir : `str`
-        Root of data repository.
-    calib : `str`
-        Name of output calibration directory.
-    rerun : `str`
-        Name of rerun
-    copyMode : `str`
-        How to move files into calibration directory.
-    validity : `int`
-        Valid days of the calib.
-    overwrite : `bool`
-        Overwrite if already ingested.
-    """
-    command = [
-        "ingestPfsCalibs.py",
-        dataDir,
-        f"--output={os.path.join(dataDir, calib)}",
-        f"--validity={validity}",
-        "--doraise",
-        f"--mode={copyMode}"]
-
-    if overwrite:
-        command += [
-            "--config", "clobber=True", "register.ignore=True"]
-
-    filedir = os.path.join(dataDir, "rerun", rerun, calibType.upper())
-
-    print(f"{shellCommand(command)} -- {shlex.quote(filedir)}/*.fits", file=fout)
 
 
 @export
@@ -1375,7 +1352,7 @@ def generateCommands(
         specFile: str,
         init: bool = False,
         blocks: Iterable[str] = [],
-        calib: str = "CALIB",
+        calib: Optional[str] = None,
         calibTypes: Iterable[str] = [],
         clean: bool = False,
         devel: bool = False,
@@ -1383,6 +1360,7 @@ def generateCommands(
         force: bool = False,
         processes: int = 1,
         output: Union[str, TextIO] = "a.sh",
+        overwriteCalib: bool = False,
         rerun: str = "noname",
         scienceSteps: Iterable[str] = []):
     """Generate shell commands according to ``specFile``
@@ -1400,8 +1378,8 @@ def generateCommands(
     blocks : `Iterable[str]`
         Blocks to execute.
         If this is empty, all blocks are executed.
-    calib : `str`
-        Name of output calibration directory.
+    calib : `Optional[str]`
+        Name of output calibration directory. (default: ``dataDir``/CALIB)
     calibTypes : `Iterable[str]`
         Types of calibs to process.
         If this is empty, all calibs are processed.
@@ -1417,6 +1395,8 @@ def generateCommands(
         Number of processes to use.
     output : `Union[str, TextIO]`
         Path to output file.
+    overwriteCalib : `bool`
+        Overwrite old calibs on ingestion.
     rerun : `str`
         Name of rerun to use.
     scienceSteps : `Iterable[str]`
@@ -1428,17 +1408,32 @@ def generateCommands(
 
     logger = logger.getChild("generateCommands")
 
-    initSource, calibBlocks, scienceBlocks = processYaml(specFile)
-    possibleBlocks = unique(list(calibBlocks.keys()) + list(scienceBlocks.keys()))
-    if blocks is None:
-        blocks = possibleBlocks
-
     dataDir = os.path.abspath(dataDir)
     if not os.path.exists(dataDir):
         if force:
             logger.warning("'%s' doesn't exist", dataDir)
         else:
             raise RuntimeError(f"'{dataDir}' doesn't exist")
+
+    if calib is None:
+        calib = os.path.join(dataDir, "CALIB")
+    else:
+        calib = os.path.abspath(calib)
+
+    if not init and not os.path.exists(calib):
+        if force:
+            logger.warning(
+                "'%s' doesn't exist"
+                " (To start without this directory, use `init` option)", calib)
+        else:
+            raise RuntimeError(
+                f"'{calib}' doesn't exist"
+                " (To start without this directory, use `init` option)")
+
+    initSource, calibBlocks, scienceBlocks = processYaml(specFile)
+    possibleBlocks = unique(list(calibBlocks.keys()) + list(scienceBlocks.keys()))
+    if blocks is None:
+        blocks = possibleBlocks
 
     unrecognisedBlocks = set(blocks) - set(possibleBlocks)
     if unrecognisedBlocks:
@@ -1461,7 +1456,8 @@ def generateCommands(
             if blockName in calibBlocks:
                 calibBlocks[blockName].execute(
                     logger, fout, dataDir, calib, rerun, copyMode,
-                    calibTypes=calibTypes, processes=processes, clean=clean, devel=devel)
+                    calibTypes=calibTypes, processes=processes, clean=clean, devel=devel,
+                    overwrite=overwriteCalib)
 
         for blockName in blocks:
             if blockName in scienceBlocks:
