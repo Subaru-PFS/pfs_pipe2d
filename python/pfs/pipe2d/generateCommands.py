@@ -685,47 +685,47 @@ class BootstrapSource(
         return True
 
 
-class _FiberTraceNoCombineSource(
+class _FiberProfilesNoCombineSource(
         CalibSource,
-        typeName="_fiberTraceNoCombine", commandName="constructFiberTrace.py"):
+        typeName="_fiberProfilesNoCombine", commandName="constructFiberProfiles.py"):
     """Do not use this class explicitly.
 
-    This class is used internally by FiberTraceSource
-    to call constructFiberTrace.py for each group of input FITS files.
+    This class is used internally by FiberProfilesSource
+    to call constructFiberProfiles.py for each group of input FITS files.
     """
     pass
 
 
 @export
-class FiberTraceSource(
+class FiberProfilesSource(
         CalibSource,
-        typeName="fiberTrace", commandName="combineFiberTraces.py"):
-    """Sources to construct fiberTrace.
+        typeName="fiberProfiles", commandName="combineFiberProfiles.py"):
+    """Sources to construct fiberProfiles.
 
-    How to construct fiberTrace is quite different
+    How to construct fiberProfiles is quite different
     from how to construct other calibs.
-    YAML structure for fiberTrace is quite peculiar, accordingly.
+    YAML structure for fiberProfiles is quite peculiar, accordingly.
     See the docstring of ``fromYaml()`` for details.
 
     Parameters
     ----------
     config : `CommandConfig`
         Configurations used in constructing this calib.
-    groups : `Iterable[_FiberTraceNoCombineSource]`
-        Groups of sources, each group for non-combined fiberTraces.
+    groups : `Iterable[_FiberProfilesNoCombineSource]`
+        Groups of sources, each group for non-combined fiberProfiles.
     validity : `int`
         Valid days of the resulting calib.
     """
 
     __slots__ = ["groups"]
 
-    def __init__(self, config: CommandConfig, groups: Iterable[_FiberTraceNoCombineSource], validity: int):
+    def __init__(self, config: CommandConfig, groups: Iterable[_FiberProfilesNoCombineSource], validity: int):
         super().__init__(config, SourceFilter(), validity)
         self.groups = list(groups)
 
     @classmethod
-    def fromYaml(cls, yamlBlock: Mapping[str, Any]) -> "FiberTraceSource":
-        """Construct ``FiberTraceSource`` from a YAML block.
+    def fromYaml(cls, yamlBlock: Mapping[str, Any]) -> "FiberProfilesSource":
+        """Construct ``FiberProfilesSource`` from a YAML block.
 
         Parameters
         ----------
@@ -734,7 +734,7 @@ class FiberTraceSource(
 
             ``"group"``
                 List of Mapping[str, Any]`.
-                fiber traces are created for each group, and then combined.
+                fiber profiles are created for each group, and then combined.
                 Contents of each group are:
 
                 ``"id"``
@@ -758,9 +758,9 @@ class FiberTraceSource(
 
         Returns
         -------
-        fiberTraceSource : `FiberTraceSource`
+        fiberProfilesSource : `FiberProfilesSource`
         """
-        groups = [_FiberTraceNoCombineSource.fromYaml(block) for block in yamlBlock["group"]]
+        groups = [_FiberProfilesNoCombineSource.fromYaml(block) for block in yamlBlock["group"]]
         config = CommandConfig.fromYaml(yamlBlock)
         validity = int(yamlBlock.get("validity", DEFAULT_CALIB_VALIDITY))
         return cls(config, groups, validity)
@@ -788,18 +788,18 @@ class FiberTraceSource(
         for g in self.groups:
             g.execute(fout, dataDir, calib, rerun, processes=processes, devel=devel)
 
-        fiberTraceDir = os.path.join(dataDir, "rerun", rerun, "FIBERTRACE")
-        print(f"mkdir {shlex.quote(fiberTraceDir)}/COMBINED", file=fout)
+        fiberProfilesDir = os.path.join(dataDir, "rerun", rerun, "FIBERPROFILES")
+        print(f"mkdir {shlex.quote(fiberProfilesDir)}/COMBINED", file=fout)
         print('_get1stMatch() { if test -e "$1" ; then echo "$1" ; fi ; }', file=fout)
 
         for detector in ["b1", "r1", "m1", "n1"]:
             command = textwrap.dedent(fr"""
-                trace0="$(_get1stMatch {shlex.quote(fiberTraceDir)}/pfsFiberTrace-*-{detector}.fits)"
-                if [ -n "$trace0" ]
+                profiles0="$(_get1stMatch {shlex.quote(fiberProfilesDir)}/pfsFiberProfiles-*-{detector}.fits)"
+                if [ -n "$profiles0" ]
                 then
                     {self.commandName} \
-                        {shlex.quote(fiberTraceDir)}/COMBINED/"$(basename "$trace0")" \
-                        {shlex.quote(fiberTraceDir)}/pfsFiberTrace-*-{detector}.fits
+                        {shlex.quote(fiberProfilesDir)}/COMBINED/"$(basename "$profiles0")" \
+                        {shlex.quote(fiberProfilesDir)}/pfsFiberProfiles-*-{detector}.fits
                 fi
             """)
             print(command[1:].rstrip(), file=fout)
@@ -811,7 +811,7 @@ class FiberTraceSource(
         Output files are expected to be under
         ``rerun/RERUNNAME/{self.outputSubdir}``.
         """
-        return "FIBERTRACE/COMBINED"
+        return "FIBERPROFILES/COMBINED"
 
 
 @export
@@ -879,7 +879,7 @@ class CalibBlock:
     # It may be able to be generated from CalibSource.__subclasses,
     # but the order of subclass definitions would be significant
     # if it were to be autogenerated.
-    calibTypes = ["bias", "dark", "flat", "bootstrap", "fiberTrace", "detectorMap"]
+    calibTypes = ["bias", "dark", "flat", "bootstrap", "fiberProfiles", "detectorMap"]
 
     def __init__(self, name: str, sources: Mapping[str, CalibSource]):
         self.name = name

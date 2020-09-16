@@ -21,7 +21,7 @@ calibBlock:
       id: "field=DARK"
     flat:
       id: "field=FLAT"
-    fiberTrace:
+    fiberProfiles:
       group:
         -
           id: "field=FLAT_ODD"

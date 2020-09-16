@@ -25,7 +25,7 @@ calibBlock:
       id: ["field=DARK", "arm=b^r^n"]
     flat:
       id: ["field=FLAT", "arm=b^r^n"]
-    fiberTrace:
+    fiberProfiles:
       group:
         -
           id: "visit=35"
@@ -33,7 +33,7 @@ calibBlock:
           id: "visit=37"
   -
     name: calibs_for_m
-    fiberTrace:
+    fiberProfiles:
       group:
         -
           id: ["visit=36", "arm=m"]
