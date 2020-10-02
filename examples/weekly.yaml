@@ -16,8 +16,9 @@ init:
 #
 # Blocks of data which are used together to update the calibrations
 #
-calibBlocks:
-  calibs_for_brn:
+calibBlock:
+  -
+    name: calibs_for_brn
     bias:
       id: ["field=BIAS", "arm=b^r^n"]
     dark:
@@ -30,25 +31,30 @@ calibBlocks:
           id: "visit=35"
         -
           id: "visit=37"
-  calibs_for_m:
+  -
+    name: calibs_for_m
     fiberTrace:
       group:
         -
           id: ["visit=36", "arm=m"]
         -
           id: ["visit=38", "arm=m"]
-  arc_brn:
+  -
+    name: arc_brn
     detectorMap:
       id: "visit=39..45:2"
-  arc_m:
+  -
+    name: arc_m
     detectorMap:
       id: ["visit=40..46:2", "arm=m"]
 
 #
 # Blocks of science pipelines
 #
-scienceBlocks:
-  pipeline_on_brn:
+scienceBlock:
+  -
+    name: pipeline_on_brn
     id: "visit=47^48^49^53^54^57"
-  pipeline_on_bmn:
+  -
+    name: pipeline_on_bmn
     id: "visit=50^51^52^55^56^58"
