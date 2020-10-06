@@ -12,8 +12,9 @@ init:
 #
 # Blocks of data which are used together to update the calibrations
 #
-calibBlocks:
-  test_calib:
+calibBlock:
+  -
+    name: test_calib
     bias:
       id: "field=BIAS"
     dark:
@@ -32,6 +33,7 @@ calibBlocks:
 #
 # Blocks of science pipelines
 #
-scienceBlocks:
-  test_science:
+scienceBlock:
+  -
+    name: test_science
     id: "field=OBJECT"
