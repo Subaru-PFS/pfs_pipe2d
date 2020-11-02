@@ -16,7 +16,7 @@ VALIDITY=1000  # Validity period (days)
 usage() {
     echo "Build calibs, given a set of biases, darks, flats and arcs" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] [-D] [-b <BIASES>] [-d <DARKS>] [-f <FLATS>] [-F <FIBERTRACE>] [-a <ARCS>] <REPO>" 1>&2
+    echo "Usage: $0 [-r <RERUN>] [-c <CORES] [-C CALIB] [-n] [-D] [-b <BIASES>] [-d <DARKS>] [-f <FLATS>] [-F <FIBERPROFILE>] [-a <ARCS>] <REPO>" 1>&2
     echo "" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: '${RERUN}')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: ${CORES})" 1>&2
@@ -27,7 +27,7 @@ usage() {
     echo "    -b <BIASES> : identifier set for biases" 1>&2
     echo "    -d <DARKS> : identifier set for darks" 1>&2
     echo "    -f <FLATS> : identifier set for flats" 1>&2
-    echo "    -F <FIBERTRACE> : identifier set for fiberTrace (multiple ok)" 1>&2
+    echo "    -F <FIBERPROFILE> : identifier set for fiberProfile (multiple ok)" 1>&2
     echo "    -a <ARCS> : identifier set for arcs" 1>&2
     echo "    <REPO> : data repository directory" 1>&2
     echo "" 1>&2
@@ -39,7 +39,7 @@ CLEANUP=true  # Clean temporary products?
 BIASES=
 DARKS=
 FLATS=
-FIBERTRACES=()
+FIBERPROFILES=()
 ARCS=
 DEVELOPER=false
 while getopts ":r:c:C:nv:b:d:f:F:a:D" opt; do
@@ -70,7 +70,7 @@ while getopts ":r:c:C:nv:b:d:f:F:a:D" opt; do
             ;;
         F)
             IFS=$'\n'
-            FIBERTRACES+=(${OPTARG})
+            FIBERPROFILES+=(${OPTARG})
             unset IFS
             ;;
         a)
@@ -90,7 +90,7 @@ REPO=$1  # Data repository directory
 if [ -z "$REPO" ] || [ -n "$2" ]; then
     usage
 fi
-if [ -z "$BIASES" ] && [ -z "$DARKS" ] && [ -z "$FLATS" ] && [ -z "$FIBERTRACES" ] && [ -z "$ARCS" ]; then
+if [ -z "$BIASES" ] && [ -z "$DARKS" ] && [ -z "$FLATS" ] && [ -z "$FIBERPROFILES" ] && [ -z "$ARCS" ]; then
     usage
 fi
 [ -z "$CALIB" ] && CALIB=${REPO}/CALIB
@@ -131,30 +131,30 @@ if [ -n "$FLATS" ]; then
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/flat) || true
 fi
 
-# Build fiber traces
-if (( ${#FIBERTRACES[@]} > 0 )); then
-    fiberTraceIdString=""
+# Build fiber profiles
+if (( ${#FIBERPROFILES[@]} > 0 )); then
+    fiberProfilesIdString=""
     IFS="\n"
-    for ft in "${FIBERTRACES[@]}"; do
-        fiberTraceIdString+=" --id $ft"
+    for ft in "${FIBERPROFILES[@]}"; do
+        fiberProfilesIdString+=" --id $ft"
     done
     unset IFS
-    constructFiberTrace.py $REPO --calib $CALIB --rerun $RERUN/fiberTrace \
-                $fiberTraceIdString $batchArgs || exit 1
+    constructFiberProfiles.py $REPO --calib $CALIB --rerun $RERUN/fiberProfiles \
+                $fiberProfilesIdString $batchArgs || exit 1
 
     shopt -s nullglob
     for detector in b1 r1 m1 n1; do
-        traces=($REPO/rerun/$RERUN/fiberTrace/FIBERTRACE/pfsFiberTrace-*-${detector}.fits)
-        if (( ${#traces[@]} == 0 )); then
-            echo "No traces for detector ${detector}."
+        profiles=($REPO/rerun/$RERUN/fiberProfiles/FIBERPROFILES/pfsFiberProfiles-*-${detector}.fits)
+        if (( ${#profiles[@]} == 0 )); then
+            echo "No profiles for detector ${detector}."
             continue
         fi
-        mkdir -p $REPO/rerun/$RERUN/fiberTrace-combined/
-        combineFiberTraces.py $REPO/rerun/$RERUN/fiberTrace-combined/$(basename ${traces[0]}) ${traces[*]}
+        mkdir -p $REPO/rerun/$RERUN/fiberProfile-combined/
+        combineFiberProfiles.py $REPO/rerun/$RERUN/fiberProfiles-combined/$(basename ${traces[0]}) ${profiles[*]}
         ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-                $REPO/rerun/$RERUN/fiberTrace-combined/pfsFiberTrace-*-${detector}.fits || exit 1
+                $REPO/rerun/$RERUN/fiberProfiles-combined/pfsFiberProfiles-*-${detector}.fits || exit 1
     done
-    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberTrace $REPO/rerun/$RERUN/fiberTrace-combined ) || true
+    ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberProfiles $REPO/rerun/$RERUN/fiberProfiles-combined ) || true
 fi
 
 # Process arc
