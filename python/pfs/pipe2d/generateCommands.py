@@ -478,7 +478,7 @@ class CalibSource:
 
         if overwrite or self.doOverwrite:
             command += [
-                "--config", "clobber=True", "register.ignore=True"]
+                "--config", "clobber=True"]
 
         filedir = os.path.join(dataDir, "rerun", rerun, self.outputSubdir)
 
