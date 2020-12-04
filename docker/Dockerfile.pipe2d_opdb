@@ -1,0 +1,21 @@
+ARG VERSION=latest
+FROM paprice/pfs_pipe2d:$VERSION
+
+MAINTAINER paprice
+LABEL description="Subaru PFS 2D pipeline with opdb support" \
+      name="paprice/pfs_pipe2d_opdb"
+
+ARG INSTALL_DIR=/opt/pfs
+
+# Install postgresql and psycopg2
+
+USER root
+RUN yum install -y postgresql \
+ && yum clean all -y
+
+USER pfs
+RUN . $INSTALL_DIR/loadLSST.bash \
+ && conda install --no-update-dependencies --yes psycopg2 \
+ && conda clean --all
+
+CMD /bin/bash

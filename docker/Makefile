@@ -29,6 +29,10 @@ pipe2d:	Dockerfile.pipe2d bin/build_pfs.sh
 pipe2d_debug: Dockerfile.pipe2d_debug
 	docker build -t paprice/pfs_pipe2d_debug:$(TAG) -f Dockerfile.pipe2d_debug --build-arg VERSION=$(TAG) .
 
+# PFS 2D pipeline with opdb
+pipe2d_opdb: Dockerfile.pipe2d_opdb
+	docker build -t paprice/pfs_pipe2d_opdb:$(TAG) -f Dockerfile.pipe2d_opdb --build-arg VERSION=$(TAG) .
+
 # Run the integration test
 test: pipe2d
 	docker run paprice/pfs_pipe2d:$(TAG) /bin/bash -lc "\$${PFS_PIPE2D_DIR}/bin/pfs_integration_test.sh -b $(PFS_BRANCH) -c $(CORES) /opt/pfs/integration_test"
