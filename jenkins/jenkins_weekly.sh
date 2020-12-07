@@ -1,7 +1,7 @@
 #!/bin/bash
 
 WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
-RAWDATA=/projects/HSC/PFS/weekly
+RAWDATA=/projects/HSC/PFS/weekly-20201125
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 [ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
