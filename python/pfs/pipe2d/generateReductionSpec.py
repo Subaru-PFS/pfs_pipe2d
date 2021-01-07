@@ -78,6 +78,9 @@ def main():
     parser.add_argument("-d", "--dbname", type=str, help="""
         Database name of opDB. For example, -d "dbname=opdb host=example.com".
     """)
+    parser.add_argument("--maxarcs", type=int, default=10, help="""
+        Max number of arc visits to use for making one detectorMap.
+    """)
     args = parser.parse_args()
 
     if args.dbname is None:
@@ -97,7 +100,9 @@ def getDefaultDBName() -> str:
     return f"dbname={getpass.getuser()}"
 
 
-def generateReductionSpec(output: str, detectorMapDir: str, dbname: str):
+def generateReductionSpec(
+        output: str, detectorMapDir: str, dbname: str,
+        *, maxarcs: int = 10):
     """Read opDB and generate a YAML file that specifies data reduction.
 
     Parameters
@@ -109,6 +114,8 @@ def generateReductionSpec(output: str, detectorMapDir: str, dbname: str):
         Environment variable like ``$env`` can be used.
     dbname : `str`
         String to pass to psycopg2.connect() for database connection.
+    maxarcs : `int`
+        Max number of arc visits to use for making one detectorMap.
     """
     yamlObject = {}
     yamlObject["init"] = getSpecInitSpec(detectorMapDir)
@@ -116,7 +123,8 @@ def generateReductionSpec(output: str, detectorMapDir: str, dbname: str):
     calibBlocks = []
     calibBlocks += getBiasDarkSpecs(dbname, "biasdark_")
     calibBlocks += getFlatSpecs(dbname, "flat_")
-    calibBlocks += getOtherCalibSpecs(dbname, "calib_")
+    calibBlocks += getFiberProfilesSpecs(dbname, "fiberProfiles_")
+    calibBlocks += getDetectorMapSpecs(dbname, "detectorMap_", maxarcs=maxarcs)
     yamlObject["calibBlock"] = calibBlocks
 
     with open(output, "w") as f:
@@ -240,9 +248,9 @@ def getFlatSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
     return blocks
 
 
-def getOtherCalibSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
+def getFiberProfilesSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
-    that specify how to create fiberProfiles and detectorMap (arc).
+    that specify how to create fiberProfiles.
 
     Parameters
     ----------
@@ -256,11 +264,11 @@ def getOtherCalibSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
     blocks : `List[Dict[str, Any]]`
         Elements of ``calibBlock`` list in the YAML spec file.
         Each element is a mapping from ``calibType``
-        ("fiberProfiles", "detectorMap") to the description of its source,
+        ("fiberProfiles") to the description of its source,
         with a special key "name" whose value is the name of the element.
     """
     blocks = []
-    for beamConfig in sorted(getBeamConfigs(["scienceTrace", "scienceArc"], dbname)):
+    for beamConfig in sorted(getBeamConfigs(["scienceTrace"], dbname)):
         for arm in all_arms:
             calibBlock: Dict[str, Any] = {}
 
@@ -277,15 +285,53 @@ def getOtherCalibSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
                     ]
                 }
 
-            sources = getSourcesFromDB("scienceArc", arm, dbname, beamConfig=beamConfig)
-            if sources:
-                calibBlock["detectorMap"] = {
-                    "id": getSourceFilterFromListOfFileId(sources)
-                }
-
             if calibBlock:
                 name = f"{nameprefix}{arm}_{beamConfig.beam_config_date}_{beamConfig.pfs_design_id:016x}"
                 blocks.append(nameYamlMapping(name, calibBlock))
+
+    return blocks
+
+
+def getDetectorMapSpecs(
+        dbname: str, nameprefix: str, *, maxarcs: int) -> List[Dict[str, Any]]:
+    """Read opDB and return a list of YAML blocks
+    that specify how to create detectorMap (arc).
+
+    Parameters
+    ----------
+    dbname : `str`
+        String to pass to psycopg2.connect() for database connection.
+    nameprefix : `str`
+        Prefix of the names of the generated blocks.
+    maxarcs : `int`
+        Max number of arc visits to use for making one detectorMap.
+
+    Returns
+    -------
+    blocks : `List[Dict[str, Any]]`
+        Elements of ``calibBlock`` list in the YAML spec file.
+        Each element is a mapping from ``calibType``
+        ("detectorMap") to the description of its source,
+        with a special key "name" whose value is the name of the element.
+    """
+    blocks = []
+    for beamConfig in sorted(getBeamConfigs(["scienceArc"], dbname)):
+        for arm in all_arms:
+            sources = getSourcesFromDB("scienceArc", arm, dbname, beamConfig=beamConfig)
+            for i, srcs in enumerate(splitSources(sources, maxarcs)):
+                calibBlock: Dict[str, Any] = {}
+
+                if sources:
+                    calibBlock["detectorMap"] = {
+                        "id": getSourceFilterFromListOfFileId(srcs)
+                    }
+
+                if calibBlock:
+                    name = (
+                        f"{nameprefix}{arm}"
+                        + f"_{beamConfig.beam_config_date}_{beamConfig.pfs_design_id:016x}_{i}"
+                    )
+                    blocks.append(nameYamlMapping(name, calibBlock))
 
     return blocks
 
@@ -510,6 +556,68 @@ def getSpansFromIntegers(ints: Iterable[int]) -> List[Tuple[int, int, int]]:
             spans += getSpansFromIntegers(xyz[2] for xyz in group[:-2])
 
     return spans
+
+
+def splitSources(sources: Iterable[FileId], chunkSize: int) -> List[List[FileId]]:
+    """Split ``sources`` into chunks
+    so that each chunk will have at most ``chunkSize`` items
+    that have contiguous visit numbers.
+
+    ``sources`` will be split as evenly as possible.
+    For example, if chunkSize == 5, then 6 items will be split into 3+3,
+    and 11 items will be split into 4+4+3.
+
+    Parameters
+    ----------
+    sources : `Iterable[FileId]`
+        The input list to split
+
+    chunkSize : `int`
+        Max size of a chunk.
+
+    Returns
+    -------
+    chunks : `List[List[FileId]]`
+        Chunks made from ``sources``.
+        Each chunk has at most ``chunkSize`` items,
+        and the items in a chunk have contiguous visit numbers.
+    """
+    if chunkSize <= 0:
+        raise ValueError(f"chunkSize must be positive ({chunkSize})")
+
+    sentinel = FileId(visit=math.nan, arm=None, spectrograph=None)
+    sources = [sentinel] + sorted(sources, key=lambda x: x.visit) + [sentinel]
+
+    # Split sources into sequences, each contiguous in terms of visits.
+    contiguousSeqs = []
+    for iscontiguous, group in itertools.groupby(
+        zip(sources[:-1], sources[1:]),
+        key=lambda pair: pair[1].visit - pair[0].visit == 1
+    ):
+        group = list(group)
+        if iscontiguous:
+            contiguousSeqs.append([pair[0] for pair in group] + [group[-1][-1]])
+        else:
+            contiguousSeqs.extend([pair[-1]] for pair in group[:-1])
+
+    # Further split the contiguous sequences into small chunks
+    chunks = []
+    for seq in contiguousSeqs:
+        n = len(seq)
+        numChunks = (n + chunkSize - 1) // chunkSize
+        quotient = n // numChunks
+        remainder = n % numChunks
+        for i in range(numChunks):
+            if remainder > 0:
+                remainder -= 1
+                numToPop = quotient + 1
+            else:
+                numToPop = quotient
+            chunks.append(seq[:numToPop])
+            seq = seq[numToPop:]
+        assert(len(seq) == 0)
+
+    return chunks
 
 
 def nameYamlMapping(name: str, mapping: Dict[str, Any]) -> Dict[str, Any]:
