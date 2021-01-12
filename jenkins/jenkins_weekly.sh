@@ -36,3 +36,6 @@ setup pfs_pipe2d
 
 # Run the weekly production test
 $HERE/weekly/process_weekly.sh -d $RAWDATA -r weekly -c $CORES $WORKDIR/process
+
+# Ensure the rerun is writeable, so everyone can play with the results
+chmod g+w $WORKDIR/process/rerun
