@@ -21,11 +21,13 @@
 """Components to implement a program ``generateReductionSpec.py``.
 """
 
+import dateutil.parser
 import psycopg2
 import yaml
 
 import argparse
 import dataclasses
+import datetime
 import getpass
 import itertools
 import math
@@ -59,6 +61,95 @@ class BeamConfig:
     pfs_design_id: int
 
 
+@dataclasses.dataclass
+class SelectionCriteria:
+    """Selection criteria used in queries to opDB.
+    """
+
+    date_start: Optional[datetime.datetime] = None
+    date_end: Optional[datetime.datetime] = None
+    visit_start: Optional[int] = None
+    visit_end: Optional[int] = None
+
+    @classmethod
+    def fromNamespace(cls, args: argparse.Namespace, *, remove: bool = False) -> "SelectionCriteria":
+        """Construct SelectionCriteria from argparse.Namespace object.
+
+        Parameters
+        ----------
+        args : `argparse.Namespace`
+            A return value of ``argparse.ArgumentParser().parse_args()``.
+        remove : `bool`
+            Remove from ``args`` those members that are used by this function.
+
+        Returns
+        -------
+        criteria : `SelectionCriteria`
+            Constructed SelectionCriteria instance.
+        """
+        criteria = SelectionCriteria()
+        criteria.updateFromNamespace(args, remove=remove)
+        return criteria
+
+    def updateFromNamespace(self, args: argparse.Namespace, *, remove: bool = False):
+        """Update self using members in argparse.Namespace object.
+
+        Parameters
+        ----------
+        args : `argparse.Namespace`
+            A return value of ``argparse.ArgumentParser().parse_args()``.
+        remove : `bool`
+            Remove from ``args`` those members that are used by this function.
+        """
+        undefined = object()
+
+        for field in dataclasses.fields(self):
+            # In case a user wants to overwrite a field with None,
+            # we use not None but `undefined` as the default value
+            member = getattr(args, field.name, undefined)
+            if member is undefined:
+                continue
+            setattr(self, field.name, member)
+            if remove:
+                delattr(args, field.name)
+
+    def asSQL(self) -> str:
+        """Get SQL expression for queries to opDB.
+
+        Returns
+        -------
+        expression : `str`
+            SQL expression.
+        """
+        # To modify this method, pay attentin to SQL injection.
+        # For example, if `self.x` is assumed to be integer
+        # but is not guaranteed to be,
+        # `:d` must always be specified in format strings:
+        #     `expressions.append(f"x > {self.x:d}")`
+        expressions = []
+        if self.date_start is not None:
+            if self.date_start.tzinfo is None:
+                datestr = self.date_start.isoformat()
+            else:
+                datestr = self.date_start.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+            expressions.append(f"pfs_visit.issued_at >= '{datestr}'")
+        if self.date_end is not None:
+            if self.date_end.tzinfo is None:
+                datestr = self.date_end.isoformat()
+            else:
+                datestr = self.date_end.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+            expressions.append(f"pfs_visit.issued_at < '{datestr}'")
+        if self.visit_start is not None:
+            expressions.append(f"pfs_visit.pfs_visit_id >= '{self.visit_start:d}'")
+        if self.visit_end is not None:
+            expressions.append(f"pfs_visit.pfs_visit_id < '{self.visit_end:d}'")
+
+        if expressions:
+            return "(" + " AND ".join(expressions) + ")"
+        else:
+            return "TRUE"
+
+
 def main():
     """The main function for generateReductionSpec.py
     """
@@ -81,7 +172,21 @@ def main():
     parser.add_argument("--maxarcs", type=int, default=10, help="""
         Max number of arc visits to use for making one detectorMap.
     """)
+    # options for SelectionCriteria follow.
+    parser.add_argument("--date-start", type=dateutil.parser.parse, help="""
+        Choose only those records with `pfs_visit.issued_at >= date_start`.
+    """)
+    parser.add_argument("--date-end", type=dateutil.parser.parse, help="""
+        Choose only those records with `pfs_visit.issued_at < date_end`.
+    """)
+    parser.add_argument("--visit-start", type=int, help="""
+        Choose only those records with `pfs_visit.pfs_visit_id >= visit_start`.
+    """)
+    parser.add_argument("--visit-end", type=int, help="""
+        Choose only those records with `pfs_visit.pfs_visit_id < visit_end`.
+    """)
     args = parser.parse_args()
+    args.criteria = SelectionCriteria.fromNamespace(args, remove=True)
 
     if args.dbname is None:
         args.dbname = getDefaultDBName()
@@ -102,6 +207,7 @@ def getDefaultDBName() -> str:
 
 def generateReductionSpec(
         output: str, detectorMapDir: str, dbname: str,
+        criteria: SelectionCriteria = SelectionCriteria(),
         *, maxarcs: int = 10):
     """Read opDB and generate a YAML file that specifies data reduction.
 
@@ -114,6 +220,8 @@ def generateReductionSpec(
         Environment variable like ``$env`` can be used.
     dbname : `str`
         String to pass to psycopg2.connect() for database connection.
+    criteria : `SelectionCriteria`
+        Selection criteria used in queries to opDB.
     maxarcs : `int`
         Max number of arc visits to use for making one detectorMap.
     """
@@ -121,10 +229,10 @@ def generateReductionSpec(
     yamlObject["init"] = getSpecInitSpec(detectorMapDir)
 
     calibBlocks = []
-    calibBlocks += getBiasDarkSpecs(dbname, "biasdark_")
-    calibBlocks += getFlatSpecs(dbname, "flat_")
-    calibBlocks += getFiberProfilesSpecs(dbname, "fiberProfiles_")
-    calibBlocks += getDetectorMapSpecs(dbname, "detectorMap_", maxarcs=maxarcs)
+    calibBlocks += getBiasDarkSpecs(dbname, "biasdark_", criteria=criteria)
+    calibBlocks += getFlatSpecs(dbname, "flat_", criteria=criteria)
+    calibBlocks += getFiberProfilesSpecs(dbname, "fiberProfiles_", criteria=criteria)
+    calibBlocks += getDetectorMapSpecs(dbname, "detectorMap_", criteria=criteria, maxarcs=maxarcs)
     yamlObject["calibBlock"] = calibBlocks
 
     with open(output, "w") as f:
@@ -165,7 +273,7 @@ def getSpecInitSpec(dirName: str) -> Dict[str, Any]:
     }
 
 
-def getBiasDarkSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
+def getBiasDarkSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create bias and dark.
 
@@ -175,6 +283,8 @@ def getBiasDarkSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
         String to pass to psycopg2.connect() for database connection.
     nameprefix : `str`
         Prefix of the names of the generated blocks.
+    criteria : `SelectionCriteria`
+        Selection criteria used in queries to opDB.
 
     Returns
     -------
@@ -195,9 +305,9 @@ def getBiasDarkSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
     for arm in arms:
         calibBlock: Dict[str, Any] = {}
         for calibType, sequenceType in calibTypes:
-            sources = getSourcesFromDB(sequenceType, arm, dbname)
+            sources = getSourcesFromDB(sequenceType, arm, dbname, criteria)
             if arm == "r":
-                sources += getSourcesFromDB(sequenceType, "m", dbname)
+                sources += getSourcesFromDB(sequenceType, "m", dbname, criteria)
             if sources:
                 calibBlock[calibType] = {
                     "id": getSourceFilterFromListOfFileId(sources)
@@ -209,7 +319,7 @@ def getBiasDarkSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
     return blocks
 
 
-def getFlatSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
+def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create flat.
 
@@ -219,6 +329,8 @@ def getFlatSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
         String to pass to psycopg2.connect() for database connection.
     nameprefix : `str`
         Prefix of the names of the generated blocks.
+    criteria : `SelectionCriteria`
+        Selection criteria used in queries to opDB.
 
     Returns
     -------
@@ -236,7 +348,7 @@ def getFlatSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
     for arm in all_arms:
         calibBlock: Dict[str, Any] = {}
         for calibType, sequenceType in calibTypes:
-            sources = getSourcesFromDB(sequenceType, arm, dbname)
+            sources = getSourcesFromDB(sequenceType, arm, dbname, criteria)
             if sources:
                 calibBlock["flat"] = {
                     "id": getSourceFilterFromListOfFileId(sources)
@@ -248,7 +360,7 @@ def getFlatSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
     return blocks
 
 
-def getFiberProfilesSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
+def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create fiberProfiles.
 
@@ -258,6 +370,8 @@ def getFiberProfilesSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
         String to pass to psycopg2.connect() for database connection.
     nameprefix : `str`
         Prefix of the names of the generated blocks.
+    criteria : `SelectionCriteria`
+        Selection criteria used in queries to opDB.
 
     Returns
     -------
@@ -268,14 +382,14 @@ def getFiberProfilesSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
         with a special key "name" whose value is the name of the element.
     """
     blocks = []
-    for beamConfig in sorted(getBeamConfigs(["scienceTrace"], dbname)):
+    for beamConfig in sorted(getBeamConfigs(["scienceTrace"], dbname, criteria)):
         for arm in all_arms:
             calibBlock: Dict[str, Any] = {}
 
             # There may be two groups (flat_odd, flat_even) in future,
             # but all sources belong to one group for now.
             sourceGroups = [
-                getSourcesFromDB("scienceTrace", arm, dbname, beamConfig=beamConfig)
+                getSourcesFromDB("scienceTrace", arm, dbname, criteria, beamConfig=beamConfig)
             ]
             sourceGroups = [group for group in sourceGroups if group]
             if sourceGroups:
@@ -293,7 +407,8 @@ def getFiberProfilesSpecs(dbname: str, nameprefix: str) -> List[Dict[str, Any]]:
 
 
 def getDetectorMapSpecs(
-        dbname: str, nameprefix: str, *, maxarcs: int) -> List[Dict[str, Any]]:
+        dbname: str, nameprefix: str, criteria: SelectionCriteria,
+        *, maxarcs: int) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create detectorMap (arc).
 
@@ -303,6 +418,8 @@ def getDetectorMapSpecs(
         String to pass to psycopg2.connect() for database connection.
     nameprefix : `str`
         Prefix of the names of the generated blocks.
+    criteria : `SelectionCriteria`
+        Selection criteria used in queries to opDB.
     maxarcs : `int`
         Max number of arc visits to use for making one detectorMap.
 
@@ -315,9 +432,9 @@ def getDetectorMapSpecs(
         with a special key "name" whose value is the name of the element.
     """
     blocks = []
-    for beamConfig in sorted(getBeamConfigs(["scienceArc"], dbname)):
+    for beamConfig in sorted(getBeamConfigs(["scienceArc"], dbname, criteria)):
         for arm in all_arms:
-            sources = getSourcesFromDB("scienceArc", arm, dbname, beamConfig=beamConfig)
+            sources = getSourcesFromDB("scienceArc", arm, dbname, criteria, beamConfig=beamConfig)
             for i, srcs in enumerate(splitSources(sources, maxarcs)):
                 calibBlock: Dict[str, Any] = {}
 
@@ -336,16 +453,18 @@ def getDetectorMapSpecs(
     return blocks
 
 
-def getBeamConfigs(sequenceTypes: Iterable[str], dbname: str) -> List[BeamConfig]:
+def getBeamConfigs(
+        sequenceTypes: Iterable[str], dbname: str, criteria: SelectionCriteria) -> List[BeamConfig]:
     """Read opDB and return a list of ``BeamConfig``.
 
     Parameters
     ----------
     sequenceTypes : `Iterable[str]`
         List of ``sps_sequence.sequence_type``.
-
     dbname : `str`
         String to pass to psycopg2.connect() for database connection.
+    criteria : `SelectionCriteria`
+        Selection criteria used in queries to opDB.
 
     Returns
     -------
@@ -370,6 +489,7 @@ def getBeamConfigs(sequenceTypes: Iterable[str], dbname: str) -> List[BeamConfig
             JOIN pfs_visit USING (pfs_visit_id)
         WHERE
             sequence_type IN ({sequenceTypesFormat})
+            AND {criteria.asSQL()}
         GROUP BY
             beam_config_date, pfs_design_id
         """, sequenceTypes)
@@ -381,7 +501,7 @@ def getBeamConfigs(sequenceTypes: Iterable[str], dbname: str) -> List[BeamConfig
 
 
 def getSourcesFromDB(
-        sequenceType: str, arm: str, dbname: str,
+        sequenceType: str, arm: str, dbname: str, criteria: SelectionCriteria,
         beamConfig: Optional[BeamConfig] = None) -> List[FileId]:
     """Read opDB and return a list of FileId from which to create a calib.
 
@@ -391,10 +511,12 @@ def getSourcesFromDB(
         Compared with sps_sequence.sequence_type in opDB.
     arm : `str`
         Arm name ('b', 'r', 'n', 'm').
-    beamConfig : `BeamConfig`
-        Instance of ``BeamConfig``.
     dbname : `str`
         String to pass to psycopg2.connect() for database connection.
+    criteria : `SelectionCriteria`
+        Selection criteria used in queries to opDB.
+    beamConfig : `BeamConfig`
+        Instance of ``BeamConfig``.
 
     Returns
     -------
@@ -403,7 +525,7 @@ def getSourcesFromDB(
     if beamConfig is None:
         beam_config_date = None
         pfs_design_id = None
-        sql = """
+        sql = f"""
         SELECT
             pfs_visit_id, arm, sps_module_id
         FROM
@@ -420,11 +542,12 @@ def getSourcesFromDB(
                 sps_annotation.data_flag IS NULL
                 OR sps_annotation.data_flag = 0
             )
+            AND {criteria.asSQL()}
         """
     else:
         beam_config_date = beamConfig.beam_config_date
         pfs_design_id = beamConfig.pfs_design_id
-        sql = """
+        sql = f"""
         SELECT
             pfs_visit_id, arm, sps_module_id
         FROM
@@ -443,6 +566,7 @@ def getSourcesFromDB(
                 sps_annotation.data_flag IS NULL
                 OR sps_annotation.data_flag = 0
             )
+            AND {criteria.asSQL()}
         """
 
     with psycopg2.connect(dbname) as conn:
