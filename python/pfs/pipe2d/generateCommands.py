@@ -959,11 +959,12 @@ class CalibBlock:
         for typeName in calibTypes:
             if typeName in self.sources:
                 self.sources[typeName].execute(
-                    fout, dataDir, calib, f"{rerun}/{typeName}", processes=processes, devel=devel)
+                    fout, dataDir, calib, f"{rerun}/{self.name}/{typeName}",
+                    processes=processes, devel=devel)
                 self.sources[typeName].ingest(
-                    fout, dataDir, calib, f"{rerun}/{typeName}", copyMode, overwrite=overwrite)
+                    fout, dataDir, calib, f"{rerun}/{self.name}/{typeName}", copyMode, overwrite=overwrite)
                 if clean:
-                    self.sources[typeName].clean(fout, dataDir, f"{rerun}/{typeName}")
+                    self.sources[typeName].clean(fout, dataDir, f"{rerun}/{self.name}/{typeName}")
 
 
 @export

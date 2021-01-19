@@ -81,7 +81,8 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
 )
 class ArcTestCase(lsst.utils.tests.TestCase):
     def setUp(self):
-        self.butler = Butler(os.path.join(weeklyRerun, "calib", self.arms, "detectorMap"))
+        self.butler = Butler(os.path.join(weeklyRerun, "calib", self.arms,
+                                          f"arc_{self.arms}", "detectorMap"))
 
     def tearDown(self):
         del self.butler
