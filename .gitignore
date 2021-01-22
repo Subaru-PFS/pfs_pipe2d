@@ -1,5 +1,8 @@
 .scon*
 __pycache__
+.coverage
+.pytest_cache
+tests/.tests
 python/pfs/pipe2d/version.py
 python/pfs/pipe2d/ticket.cache.*
 bin/generateChangelog.py
