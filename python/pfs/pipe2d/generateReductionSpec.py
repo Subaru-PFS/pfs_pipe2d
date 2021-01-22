@@ -316,7 +316,7 @@ def getBiasDarkSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) 
         if calibBlock:
             blocks.append(nameYamlMapping(f"{nameprefix}{arm}", calibBlock))
 
-    return blocks
+    return mergeCalibBlocks(blocks)
 
 
 def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
@@ -357,7 +357,7 @@ def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> L
         if calibBlock:
             blocks.append(nameYamlMapping(f"{nameprefix}{arm}", calibBlock))
 
-    return blocks
+    return mergeCalibBlocks(blocks)
 
 
 def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
@@ -400,10 +400,12 @@ def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCrite
                 }
 
             if calibBlock:
-                name = f"{nameprefix}{arm}_{beamConfig.beam_config_date}_{beamConfig.pfs_design_id:016x}"
-                blocks.append(nameYamlMapping(name, calibBlock))
+                # This name is not unique
+                # but a serial number will be added to it
+                # after a merge process.
+                blocks.append(nameYamlMapping(f"{nameprefix}{arm}", calibBlock))
 
-    return blocks
+    return addSerialNumbersToNames(mergeCalibBlocks(blocks))
 
 
 def getDetectorMapSpecs(
@@ -435,7 +437,7 @@ def getDetectorMapSpecs(
     for beamConfig in sorted(getBeamConfigs(["scienceArc"], dbname, criteria)):
         for arm in all_arms:
             sources = getSourcesFromDB("scienceArc", arm, dbname, criteria, beamConfig=beamConfig)
-            for i, srcs in enumerate(splitSources(sources, maxarcs)):
+            for srcs in splitSources(sources, maxarcs):
                 calibBlock: Dict[str, Any] = {}
 
                 if sources:
@@ -444,13 +446,12 @@ def getDetectorMapSpecs(
                     }
 
                 if calibBlock:
-                    name = (
-                        f"{nameprefix}{arm}"
-                        + f"_{beamConfig.beam_config_date}_{beamConfig.pfs_design_id:016x}_{i}"
-                    )
-                    blocks.append(nameYamlMapping(name, calibBlock))
+                    # This name is not unique
+                    # but a serial number will be added to it
+                    # after a merge process.
+                    blocks.append(nameYamlMapping(f"{nameprefix}{arm}", calibBlock))
 
-    return blocks
+    return addSerialNumbersToNames(mergeCalibBlocks(blocks))
 
 
 def getBeamConfigs(
@@ -765,3 +766,193 @@ def nameYamlMapping(name: str, mapping: Dict[str, Any]) -> Dict[str, Any]:
     newMapping = {"name": name}
     newMapping.update((key, value) for key, value in mapping.items() if key != "name")
     return newMapping
+
+
+def mergeCalibBlocks(blocks: Iterable[Any]) -> List[Any]:
+    """Find mergeable calibBlocks in ``blocks`` and merge them.
+
+    Two calibBlocks are "mergeable"
+    if they are equal up to strings "arm=..." in them.
+
+    Parameters
+    ----------
+    blocks : `Iterable[Any]`
+        List of calibBlocks.
+
+    Returns
+    -------
+    newBlocks : `List[Any]`
+        Shallow copy of ``blocks``,
+        except that mergeable elements have been merged.
+    """
+    blocks = list(blocks)
+
+    newBlocks = []
+    while blocks:
+        mergeables = [0]
+        for i in range(1, len(blocks)):
+            if _mergeCalibBlocks_isMergeable(blocks[0], blocks[i]):
+                mergeables.append(i)
+        newBlocks.append(_mergeCalibBlocks_merge(blocks[i] for i in mergeables))
+        for i in reversed(mergeables):
+            del blocks[i]
+
+    return newBlocks
+
+
+def _mergeCalibBlocks_isMergeable(object1: Any, object2: Any) -> bool:
+    """Compare two calibBlocks and return True if they are mergeable,
+    which means they are equal up to strings "arm=...".
+    ("name" key is also ignored in comparison.)
+
+    Parameters
+    ----------
+    object1 : `Any`
+        Any constituent part of a calibBlock
+        (including the complete calibBlock itself).
+    object2 : `Any`
+        Any constituent part of a calibBlock
+        (including the complete calibBlock itself).
+
+    Returns
+    -------
+    isMergeable : `bool`
+        True if ``object1`` and ``object2`` are mergeable
+    """
+    if isinstance(object1, list):
+        if not isinstance(object2, list):
+            return False
+        if len(object1) != len(object2):
+            return False
+        return all(
+            _mergeCalibBlocks_isMergeable(elem1, elem2)
+            for elem1, elem2 in zip(object1, object2)
+        )
+
+    if isinstance(object1, dict):
+        if not isinstance(object2, dict):
+            return False
+        if set(object1.keys()) != set(object2.keys()):
+            return False
+        return all(
+            _mergeCalibBlocks_isMergeable(object1[key], object2[key])
+            for key in object1 if key != "name"
+        )
+
+    if isinstance(object1, str):
+        if not isinstance(object2, str):
+            return False
+        if object1.startswith("arm=") and object2.startswith("arm="):
+            return True
+        return object1 == object2
+
+    return object1 == object2
+
+
+def _mergeCalibBlocks_merge(objects: Iterable[Any]) -> Any:
+    """Merge calibBlocks.
+
+    Parameters
+    ----------
+    objects : `Iterable[Any]`
+        A list, each element being any constituent part of a calibBlock.
+        (including a complete calibBlock itself).
+        All elements must be mergeable to each other.
+
+    Returns
+    -------
+    merged : `Any`
+        Merged object.
+    """
+    objects = list(objects)
+    if not objects:
+        raise ValueError("No objects to merge.")
+
+    if any(isinstance(obj, list) for obj in objects):
+        if not all(isinstance(obj, list) for obj in objects):
+            raise ValueError("calibBlocks are not mergeable.")
+        if not all(len(objects[0]) == len(obj) for obj in objects):
+            return ValueError("calibBlocks are not mergeable.")
+        return [_mergeCalibBlocks_merge(tpl) for tpl in zip(*objects)]
+
+    if any(isinstance(obj, dict) for obj in objects):
+        if not all(isinstance(obj, dict) for obj in objects):
+            raise ValueError("calibBlocks are not mergeable.")
+        if not all(set(objects[0].keys()) == set(obj.keys()) for obj in objects):
+            return ValueError("calibBlocks are not mergeable.")
+        merged = {}
+        for key in objects[0]:
+            if key == "name":
+                merged[key] = _mergeCalibBlocks_mergeNames(obj[key] for obj in objects)
+            else:
+                merged[key] = _mergeCalibBlocks_merge(obj[key] for obj in objects)
+        return merged
+
+    if any(isinstance(obj, str) for obj in objects):
+        if not all(isinstance(obj, str) for obj in objects):
+            raise ValueError("calibBlocks are not mergeable.")
+        if all(obj.startswith("arm=") for obj in objects):
+            return "arm=" + "^".join(sorted(obj[len("arm="):] for obj in objects))
+        if not all(objects[0] == obj for obj in objects):
+            raise ValueError("calibBlocks are not mergeable.")
+        return objects[0]
+
+    if not all(objects[0] == obj for obj in objects):
+        raise ValueError("calibBlocks are not mergeable.")
+    return objects[0]
+
+
+def _mergeCalibBlocks_mergeNames(names: Iterable[str]) -> str:
+    """Merge names of calibBlocks.
+
+    The names must be ``f"{prefix}{arm}"``,
+    in which ``prefix`` is common to all names.
+
+    Parameters
+    ----------
+    names : `Iterable[str]`
+        Names of calibBlocks to merge.
+
+    Returns
+    -------
+    mergedName : `str`
+        Merge result.
+    """
+    names = list(names)
+    if not names:
+        raise ValueError("No names to merge.")
+
+    armRe = "|".join(re.escape(arm) for arm in all_arms)
+    nameRe = fr"\A(?P<prefix>.*)(?P<arm>{armRe})\Z"
+
+    splitNames = [re.match(nameRe, name).groupdict() for name in names]
+    if not all(splitNames[0]["prefix"] == name["prefix"] for name in splitNames):
+        raise ValueError("names are not mergeable.")
+
+    return splitNames[0]["prefix"] + "".join(sorted(name["arm"] for name in splitNames))
+
+
+def addSerialNumbersToNames(calibBlocks: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Find elements in ``calibBlocks`` that have a name common to them,
+    and add serial numbers to the name.
+    Even if an element has a unique name, the name is added ``"_1"`` to.
+    The order of elements in the return value
+    may be different from that in the argument.
+
+    Parameters
+    ----------
+    calibBlocks : `Iterable[Dict[str, Any]]`
+        List of calibBlocks.
+
+    Returns
+    -------
+    calibBlocks : `Iterable[Dict[str, Any]]`
+        List of calibBlocks, each element is given a unique name.
+    """
+    calibBlocks = sorted(calibBlocks, key=lambda block: block["name"])
+    for key, group in itertools.groupby(calibBlocks, key=lambda block: block["name"]):
+        group = list(group)
+        for i, elem in enumerate(group, start=1):
+            elem["name"] += f"_{i}"
+
+    return calibBlocks
