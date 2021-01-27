@@ -137,7 +137,7 @@ make_brn 3 --pfsDesignId 1 --exptime 30 --type flat --xoffset 4000
 make_brn 3 --pfsDesignId 1 --exptime 30 --type flat --xoffset -2000
 make_brn 3 --pfsDesignId 1 --exptime 30 --type flat --xoffset -4000
 # Fiber trace
-make_brmn 1 --pfsDesignId 3 --exptime 30 --type flat --imagetyp flat_odd --detectorMap detectorMap-sim-@DETECTOR@.fits
+make_brmn 1 --pfsDesignId 3 --exptime 30 --type flat --imagetyp flat_odd
 make_brmn 1 --pfsDesignId 4 --exptime 30 --type flat --imagetyp flat_even
 # Arcs
 make_brmn 1 --pfsDesignId 1 --exptime 2 --type arc --lamps NE
