@@ -16,15 +16,14 @@ def run(tag, branch="master"):
     branch : `str`, optional
         Branch to test.
     """
-
     response = triggerJenkins(JENKINS_URL, JENKINS_TOKEN, BRANCH=tag, USERNAME=getpass.getuser())
     print("Triggered integration test.", response.text)
 
 
 def main():
     """Parse command-line and run"""
-    parser = argparse.ArgumentParser(description="Tag and release the 2D pipeline")
-    parser.add_argument("branch", help="Branch to tag")
+    parser = argparse.ArgumentParser(description="Trigger an integration test on Jenkins")
+    parser.add_argument("branch", help="Branch to test")
     args = parser.parse_args()
     run(args.branch)
 
