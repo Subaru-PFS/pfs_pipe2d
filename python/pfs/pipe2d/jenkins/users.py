@@ -21,7 +21,7 @@ class User(SimpleNamespace):
         E-mail address.
     """
     def __init__(self, userName, name, gitHub, slack, email):
-        super().__init__(userName=userName, gitHub=gitHub, slack=slack, email=email)
+        super().__init__(userName=userName, name=name, gitHub=gitHub, slack=slack, email=email)
 
 
 class UserDatabase:
