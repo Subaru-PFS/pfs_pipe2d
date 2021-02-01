@@ -7,3 +7,4 @@ python/pfs/pipe2d/version.py
 python/pfs/pipe2d/ticket.cache.*
 bin/generateChangelog.py
 bin/generateCommands.py
+bin/generateReductionSpec.py
