@@ -123,5 +123,5 @@ build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
 
 # Run the integration test
 state="test"
-pfs_integration_test.sh -b $(BRANCH) -c $(CORES) $WORKDIR
+pfs_integration_test.sh -b $BRANCH -c $CORES $WORKDIR
 state=""  # Indicates success
