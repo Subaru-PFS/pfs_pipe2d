@@ -36,14 +36,20 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
                 self.assertTrue(self.butler.datasetExists("pfsArmLsf", visit=visit, arm=arm))
             self.assertTrue(self.butler.datasetExists("pfsMerged", visit=visit))
             self.assertTrue(self.butler.datasetExists("pfsMergedLsf", visit=visit))
-            config = self.butler.get("pfsConfig", visit=visit, arm=arm)
+            config = self.butler.get("pfsConfig", visit=visit)
             for target in config:
+                if target.catId == -1:
+                    # Not a real target that we've processed
+                    continue
                 self.assertTrue(self.butler.datasetExists("pfsSingle", target.identity, visit=visit))
                 self.assertTrue(self.butler.datasetExists("pfsSingleLsf", target.identity, visit=visit))
 
     def testObjectProducts(self):
         """Test that object products exist"""
         for target in self.design:
+            if target.catId == -1:
+                # Not a real target that we've processed
+                continue
             dataId = target.identity.copy()
             dataId["nVisit"] = len(self.visits)
             dataId["pfsVisitHash"] = calculatePfsVisitHash(self.visits)
@@ -57,7 +63,10 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
             spectra = self.butler.get("pfsMerged", visit=visit)
             lsf = self.butler.get("pfsMergedLsf", visit=visit)
             badMask = spectra.flags.get("NO_DATA", "BAD_FLAT", "INTRP")
-            for fiberId in config.fiberId:
+            for fiberId, target in zip(config.fiberId, config):
+                if target.catId == -1:
+                    # Not a real target that we've processed
+                    continue
                 with self.subTest(visit=visit, fiberId=fiberId):
                     index = np.where(spectra.fiberId == fiberId)[0]
                     mask = spectra.mask[index]
@@ -69,10 +78,12 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
                     self.assertIn(fiberId, lsf)
                     self.assertIsInstance(lsf[fiberId], Lsf)
 
-    @lsst.utils.tests.debugger(Exception)
     def testObjects(self):
         """Test that object files can be read, and they are reasonable"""
         for target in self.design:
+            if target.catId == -1:
+                # Not a real target that we've processed
+                continue
             with self.subTest(**target.identity):
                 dataId = target.identity.copy()
                 dataId.update(nVisit=len(self.visits), pfsVisitHash=calculatePfsVisitHash(self.visits))
@@ -112,8 +123,8 @@ class ArcTestCase(lsst.utils.tests.TestCase):
                     fitWavelength = detMap.findWavelength(fiberId, lines.y[select])
                     residual = lines.wavelength[select] - fitWavelength
                     lq, median, uq = np.percentile(residual, (25.0, 50.0, 75.0))
-                    self.assertFloatsAlmostEqual(median, 0.0, atol=5.0e-2)
-                    self.assertFloatsAlmostEqual(0.741*(uq - lq), 0.0, atol=3.0e-2)
+                    self.assertFloatsAlmostEqual(median, 0.0, atol=1.0e-2)
+                    self.assertFloatsAlmostEqual(0.741*(uq - lq), 0.0, atol=2.0e-2)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
