@@ -38,12 +38,18 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
             self.assertTrue(self.butler.datasetExists("pfsMergedLsf", visit=visit))
             config = self.butler.get("pfsConfig", visit=visit, arm=arm)
             for target in config:
+                if target.catId == -1:
+                    # Not a real target that we've processed
+                    continue
                 self.assertTrue(self.butler.datasetExists("pfsSingle", target.identity, visit=visit))
                 self.assertTrue(self.butler.datasetExists("pfsSingleLsf", target.identity, visit=visit))
 
     def testObjectProducts(self):
         """Test that object products exist"""
         for target in self.design:
+            if target.catId == -1:
+                # Not a real target that we've processed
+                continue
             dataId = target.identity.copy()
             dataId["nVisit"] = len(self.visits)
             dataId["pfsVisitHash"] = calculatePfsVisitHash(self.visits)
@@ -57,7 +63,10 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
             spectra = self.butler.get("pfsMerged", visit=visit)
             lsf = self.butler.get("pfsMergedLsf", visit=visit)
             badMask = spectra.flags.get("NO_DATA", "BAD_FLAT", "INTRP")
-            for fiberId in config.fiberId:
+            for fiberId, target in zip(config.fiberId, config):
+                if target.catId == -1:
+                    # Not a real target that we've processed
+                    continue
                 with self.subTest(visit=visit, fiberId=fiberId):
                     index = np.where(spectra.fiberId == fiberId)[0]
                     mask = spectra.mask[index]
@@ -73,6 +82,9 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
     def testObjects(self):
         """Test that object files can be read, and they are reasonable"""
         for target in self.design:
+            if target.catId == -1:
+                # Not a real target that we've processed
+                continue
             with self.subTest(**target.identity):
                 dataId = target.identity.copy()
                 dataId.update(nVisit=len(self.visits), pfsVisitHash=calculatePfsVisitHash(self.visits))
