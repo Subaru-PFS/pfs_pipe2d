@@ -36,7 +36,7 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
                 self.assertTrue(self.butler.datasetExists("pfsArmLsf", visit=visit, arm=arm))
             self.assertTrue(self.butler.datasetExists("pfsMerged", visit=visit))
             self.assertTrue(self.butler.datasetExists("pfsMergedLsf", visit=visit))
-            config = self.butler.get("pfsConfig", visit=visit, arm=arm)
+            config = self.butler.get("pfsConfig", visit=visit)
             for target in config:
                 if target.catId == -1:
                     # Not a real target that we've processed
