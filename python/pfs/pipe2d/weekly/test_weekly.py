@@ -78,7 +78,6 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
                     self.assertIn(fiberId, lsf)
                     self.assertIsInstance(lsf[fiberId], Lsf)
 
-    @lsst.utils.tests.debugger(Exception)
     def testObjects(self):
         """Test that object files can be read, and they are reasonable"""
         for target in self.design:
