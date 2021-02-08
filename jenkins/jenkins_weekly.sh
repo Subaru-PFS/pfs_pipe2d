@@ -1,7 +1,6 @@
 #!/bin/bash
 
 WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
-RAWDATA=/projects/HSC/PFS/weekly-20201125
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 [ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
@@ -35,7 +34,7 @@ $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, 
 setup pfs_pipe2d
 
 # Run the weekly production test
-$HERE/weekly/process_weekly.sh -d $RAWDATA -r weekly -c $CORES $WORKDIR/process
+$HERE/weekly/process_weekly.sh -r weekly -c $CORES $WORKDIR/process
 
 # Ensure the rerun is writeable, so everyone can play with the results
 chmod g+w $WORKDIR/process/rerun
