@@ -123,7 +123,7 @@ class ArcTestCase(lsst.utils.tests.TestCase):
                     fitWavelength = detMap.findWavelength(fiberId, lines.y[select])
                     residual = lines.wavelength[select] - fitWavelength
                     lq, median, uq = np.percentile(residual, (25.0, 50.0, 75.0))
-                    self.assertFloatsAlmostEqual(median, 0.0, atol=1.0e-2)
+                    self.assertFloatsAlmostEqual(median, 0.0, atol=2.0e-2)
                     self.assertFloatsAlmostEqual(0.741*(uq - lq), 0.0, atol=2.0e-2)
 
 
