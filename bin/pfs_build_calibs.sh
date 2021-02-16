@@ -149,9 +149,9 @@ if (( ${#FIBERPROFILES[@]} > 0 )); then
             echo "No profiles for detector ${detector}."
             continue
         fi
-        mkdir -p $REPO/rerun/$RERUN/fiberProfile-combined/
-        combineFiberProfiles.py $REPO/rerun/$RERUN/fiberProfiles-combined/$(basename ${traces[0]}) ${profiles[*]}
-        ingestCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+        mkdir -p $REPO/rerun/$RERUN/fiberProfiles-combined/
+        combineFiberProfiles.py $REPO/rerun/$RERUN/fiberProfiles-combined/$(basename ${profiles[0]}) ${profiles[*]}
+        ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
                 $REPO/rerun/$RERUN/fiberProfiles-combined/pfsFiberProfiles-*-${detector}.fits || exit 1
     done
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberProfiles $REPO/rerun/$RERUN/fiberProfiles-combined ) || true
