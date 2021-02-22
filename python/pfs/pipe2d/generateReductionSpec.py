@@ -158,7 +158,7 @@ def main():
         The spec file can be input to generateCommands.py
         to generate actual commands.
     """)
-    parser.add_argument("detectorMapDir", type=str, help="""
+    parser.add_argument("--detectorMapDir", type=str, help="""
         Directory that contains initial detector maps.
         If you want to inscribe environment variables as environment variables
         in the output file, escape the $ sign when calling this program.
@@ -206,27 +206,28 @@ def getDefaultDBName() -> str:
 
 
 def generateReductionSpec(
-        output: str, detectorMapDir: str, dbname: str,
+        output: str, dbname: str,
         criteria: SelectionCriteria = SelectionCriteria(),
-        *, maxarcs: int = 10):
+        *, maxarcs: int = 10, detectorMapDir: str = None):
     """Read opDB and generate a YAML file that specifies data reduction.
 
     Parameters
     ----------
     output : `str`
         Output file name.
-    detectorMapDir : `str`
-        Directory that contains initial detector maps.
-        Environment variable like ``$env`` can be used.
     dbname : `str`
         String to pass to psycopg2.connect() for database connection.
     criteria : `SelectionCriteria`
         Selection criteria used in queries to opDB.
     maxarcs : `int`
         Max number of arc visits to use for making one detectorMap.
+    detectorMapDir : `str`, optional
+        Directory that contains initial detector maps.
+        Environment variable like ``$env`` can be used.
     """
     yamlObject = {}
-    yamlObject["init"] = getSpecInitSpec(detectorMapDir)
+    if detectorMapDir is not None:
+        yamlObject["init"] = getSpecInitSpec(detectorMapDir)
 
     calibBlocks = []
     calibBlocks += getBiasDarkSpecs(dbname, "biasdark_", criteria=criteria)
