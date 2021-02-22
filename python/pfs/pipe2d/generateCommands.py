@@ -33,6 +33,7 @@ import os
 import re
 import shlex
 import textwrap
+import stat
 
 import yaml
 
@@ -1522,3 +1523,5 @@ def generateCommands(
                     steps=scienceSteps, processes=processes, devel=devel)
 
         logger.info("End writing shell commands on '%s'", getattr(fout, "name", "(fileobj)"))
+
+    os.chmod(output, os.stat(output).st_mode | stat.S_IXUSR | stat.S_IXGRP)
