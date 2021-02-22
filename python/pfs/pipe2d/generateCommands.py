@@ -1271,7 +1271,7 @@ def processYaml(yamlFile: str) -> Tuple[InitSource, Dict[str, CalibBlock], Dict[
     with open(yamlFile) as fd:
         content = yaml.load(fd, Loader=yaml.CSafeLoader)
 
-    initSource = InitSource.fromYaml(content["init"])
+    initSource = InitSource.fromYaml(content["init"]) if "init" in content else None
 
     calibBlocks = {}
     for yamlBlock in content.get("calibBlock", []):
@@ -1504,6 +1504,8 @@ def generateCommands(
         print("set -eux", file=fout)
 
         if init:
+            if initSource is None:
+                raise RuntimeError("No 'init' block to execute")
             initSource.execute(logger, fout, dataDir, calib)
 
         for blockName in blocks:
