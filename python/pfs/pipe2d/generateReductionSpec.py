@@ -150,6 +150,62 @@ class SelectionCriteria:
             return "TRUE"
 
 
+@dataclasses.dataclass
+class ConfigOverrides:
+    """Configuration overrides for each type of operation
+    """
+
+    bias: Optional[str] = None
+    dark: Optional[str] = None
+    flat: Optional[str] = None
+    fiberProfiles: Optional[str] = None
+    detectorMap: Optional[str] = None
+
+    @classmethod
+    def fromDirectory(cls, directory: str) -> "ConfigOverrides":
+        """Construct `ConfigOverrides` from a directory name
+
+        We search the directory for files named after each of the operations.
+
+        Parameters
+        ----------
+        directory : `str`
+            Directory to search for config override files.
+
+        Returns
+        -------
+        config : `ConfigOverrides`
+            Constructed `ConfigOverrides` instance.
+        """
+        if not os.path.exists(directory) or not os.path.isdir(directory):
+            raise RuntimeError(f"Not a directory: {directory}")
+        filenames = {nn: os.path.join(directory, nn + ".py") for nn in cls.__dataclass_fields__}
+        fields = {nn: os.path.abspath(fn) if os.path.exists(fn) else None for
+                  nn, fn in filenames.items()}
+        return cls(**fields)
+
+    def toYaml(self, operation: str) -> dict:
+        """Return the appropriate YAML string for an operation
+
+        This may be an empty block, if there are no config overrides for that
+        operation.
+
+        Parameters
+        ----------
+        operation : `str`
+            Operation for which to provide the configuration overrides.
+
+        Returns
+        -------
+        yaml : `dict`
+            YAML block to trigger configuration overrides; may be empty.
+        """
+        if operation not in self.__dataclass_fields__:
+            raise LookupError(f"Unrecognised operation: {operation}")
+        filename = getattr(self, operation)
+        return {} if filename is None else dict(configfile=filename)
+
+
 def main():
     """The main function for generateReductionSpec.py
     """
@@ -185,6 +241,9 @@ def main():
     parser.add_argument("--visit-end", type=int, help="""
         Choose only those records with `pfs_visit.pfs_visit_id < visit_end`.
     """)
+    parser.add_argument("--config", type=ConfigOverrides.fromDirectory, default=ConfigOverrides(), help="""
+        Configuration override directory.
+    """)
     args = parser.parse_args()
     args.criteria = SelectionCriteria.fromNamespace(args, remove=True)
 
@@ -208,7 +267,8 @@ def getDefaultDBName() -> str:
 def generateReductionSpec(
         output: str, dbname: str,
         criteria: SelectionCriteria = SelectionCriteria(),
-        *, maxarcs: int = 10, detectorMapDir: str = None):
+        *, maxarcs: int = 10, detectorMapDir: str = None,
+        config: ConfigOverrides = ConfigOverrides()):
     """Read opDB and generate a YAML file that specifies data reduction.
 
     Parameters
@@ -224,16 +284,19 @@ def generateReductionSpec(
     detectorMapDir : `str`, optional
         Directory that contains initial detector maps.
         Environment variable like ``$env`` can be used.
+    config : `ConfigOverrides`, optional
+        Configuration overrides.
     """
     yamlObject = {}
     if detectorMapDir is not None:
         yamlObject["init"] = getSpecInitSpec(detectorMapDir)
 
     calibBlocks = []
-    calibBlocks += getBiasDarkSpecs(dbname, "biasdark_", criteria=criteria)
-    calibBlocks += getFlatSpecs(dbname, "flat_", criteria=criteria)
-    calibBlocks += getFiberProfilesSpecs(dbname, "fiberProfiles_", criteria=criteria)
-    calibBlocks += getDetectorMapSpecs(dbname, "detectorMap_", criteria=criteria, maxarcs=maxarcs)
+    calibBlocks += getBiasDarkSpecs(dbname, "biasdark_", criteria=criteria, config=config)
+    calibBlocks += getFlatSpecs(dbname, "flat_", criteria=criteria, config=config)
+    calibBlocks += getFiberProfilesSpecs(dbname, "fiberProfiles_", criteria=criteria, config=config)
+    calibBlocks += getDetectorMapSpecs(dbname, "detectorMap_", criteria=criteria, maxarcs=maxarcs,
+                                       config=config)
     yamlObject["calibBlock"] = calibBlocks
 
     with open(output, "w") as f:
@@ -274,7 +337,8 @@ def getSpecInitSpec(dirName: str) -> Dict[str, Any]:
     }
 
 
-def getBiasDarkSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
+def getBiasDarkSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria,
+                     config: ConfigOverrides) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create bias and dark.
 
@@ -286,6 +350,8 @@ def getBiasDarkSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) 
         Prefix of the names of the generated blocks.
     criteria : `SelectionCriteria`
         Selection criteria used in queries to opDB.
+    config : `ConfigOverrides`
+        Configuration overrides to apply.
 
     Returns
     -------
@@ -313,6 +379,7 @@ def getBiasDarkSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) 
                 calibBlock[calibType] = {
                     "id": getSourceFilterFromListOfFileId(sources)
                 }
+                calibBlock[calibType].update(config.toYaml(calibType))
 
         if calibBlock:
             blocks.append(nameYamlMapping(f"{nameprefix}{arm}", calibBlock))
@@ -320,7 +387,8 @@ def getBiasDarkSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) 
     return mergeCalibBlocks(blocks)
 
 
-def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
+def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria,
+                 config: ConfigOverrides) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create flat.
 
@@ -332,6 +400,8 @@ def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> L
         Prefix of the names of the generated blocks.
     criteria : `SelectionCriteria`
         Selection criteria used in queries to opDB.
+    config : `ConfigOverrides`
+        Configuration overrides to apply.
 
     Returns
     -------
@@ -354,6 +424,7 @@ def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> L
                 calibBlock["flat"] = {
                     "id": getSourceFilterFromListOfFileId(sources)
                 }
+                calibBlock["flat"].update(config.toYaml("flat"))
 
         if calibBlock:
             blocks.append(nameYamlMapping(f"{nameprefix}{arm}", calibBlock))
@@ -361,7 +432,8 @@ def getFlatSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> L
     return mergeCalibBlocks(blocks)
 
 
-def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria) -> List[Dict[str, Any]]:
+def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCriteria,
+                          config: ConfigOverrides) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create fiberProfiles.
 
@@ -373,6 +445,8 @@ def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCrite
         Prefix of the names of the generated blocks.
     criteria : `SelectionCriteria`
         Selection criteria used in queries to opDB.
+    config : `ConfigOverrides`
+        Configuration overrides to apply.
 
     Returns
     -------
@@ -399,6 +473,7 @@ def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCrite
                         {"id": getSourceFilterFromListOfFileId(group)} for group in sourceGroups
                     ]
                 }
+                calibBlock["fiberProfiles"]["group"][0].update(config.toYaml("fiberProfiles"))
 
             if calibBlock:
                 # This name is not unique
@@ -411,7 +486,7 @@ def getFiberProfilesSpecs(dbname: str, nameprefix: str, criteria: SelectionCrite
 
 def getDetectorMapSpecs(
         dbname: str, nameprefix: str, criteria: SelectionCriteria,
-        *, maxarcs: int) -> List[Dict[str, Any]]:
+        config: ConfigOverrides, *, maxarcs: int) -> List[Dict[str, Any]]:
     """Read opDB and return a list of YAML blocks
     that specify how to create detectorMap (arc).
 
@@ -423,6 +498,8 @@ def getDetectorMapSpecs(
         Prefix of the names of the generated blocks.
     criteria : `SelectionCriteria`
         Selection criteria used in queries to opDB.
+    config : `ConfigOverrides`
+        Configuration overrides to apply.
     maxarcs : `int`
         Max number of arc visits to use for making one detectorMap.
 
@@ -445,6 +522,7 @@ def getDetectorMapSpecs(
                     calibBlock["detectorMap"] = {
                         "id": getSourceFilterFromListOfFileId(srcs)
                     }
+                    calibBlock["detectorMap"].update(config.toYaml("detectorMap"))
 
                 if calibBlock:
                     # This name is not unique
