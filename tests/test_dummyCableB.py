@@ -32,7 +32,7 @@ class DummyCableBTestCase(lsst.utils.tests.TestCase):
                 self.assertFloatsEqual(self.db.getFiberIds(*nn), fiberIds)
 
             # Test makePfsDesign
-            design = makePfsDesign(ident, fiberIds)
+            design = makePfsDesign(ident, fiberIds, 'brn')
             self.assertFloatsEqual(design.fiberId, fiberIds)
 
     def testCommandLine(self):
