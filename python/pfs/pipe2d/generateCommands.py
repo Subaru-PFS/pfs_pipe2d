@@ -316,7 +316,7 @@ class InitSource:
             f"--validity={DEFAULT_CALIB_VALIDITY}",
             "--create",
             "--doraise",
-            f"--mode=copy",
+            "--mode=copy",
             "--"]
 
         command += detectorMaps
