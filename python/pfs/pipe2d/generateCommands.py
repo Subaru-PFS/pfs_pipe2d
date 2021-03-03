@@ -86,6 +86,8 @@ def main():
                         help="Name of rerun to use")
     parser.add_argument("--scienceSteps", type=str, nargs="+", default=[], choices=ScienceBlock.steps,
                         help="pipeline steps to execute")
+    parser.add_argument("--allowErrors", default=False, action="store_true",
+                        help="Allow processing errors to be non-fatal?")
 
     args = parser.parse_args()
     logger = lsst.log.getLogger("")
@@ -1417,7 +1419,8 @@ def generateCommands(
         output: Union[str, TextIO] = "a.sh",
         overwriteCalib: bool = False,
         rerun: str = "noname",
-        scienceSteps: Iterable[str] = []):
+        scienceSteps: Iterable[str] = [],
+        allowErrors: bool = False):
     """Generate shell commands according to ``specFile``
 
     Parameters
@@ -1457,6 +1460,8 @@ def generateCommands(
     scienceSteps : `Iterable[str]`
         pipeline steps to execute.
         If this is empty, all steps are executed.
+    allowErrors : `bool`, optional
+        Allow processing errors to be non-fatal?
     """
     if clean and copyMode == "link":
         raise ValueError("When `copyMode`=link, `clean` must not be True.")
@@ -1502,7 +1507,10 @@ def generateCommands(
         logger.info("Start writing shell commands on '%s'", getattr(fout, "name", "(fileobj)"))
 
         print("#!/bin/sh", file=fout)
-        print("set -eux", file=fout)
+        setopts = "ux"
+        if not allowErrors:
+            setopts += "e"
+        print(f"set -{setopts}", file=fout)
 
         if init:
             if initSource is None:
