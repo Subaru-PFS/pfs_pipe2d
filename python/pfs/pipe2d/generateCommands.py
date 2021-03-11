@@ -33,6 +33,7 @@ import os
 import re
 import shlex
 import textwrap
+import stat
 
 import yaml
 
@@ -85,6 +86,8 @@ def main():
                         help="Name of rerun to use")
     parser.add_argument("--scienceSteps", type=str, nargs="+", default=[], choices=ScienceBlock.steps,
                         help="pipeline steps to execute")
+    parser.add_argument("--allowErrors", default=False, action="store_true",
+                        help="Allow processing errors to be non-fatal?")
 
     args = parser.parse_args()
     logger = lsst.log.getLogger("")
@@ -315,7 +318,7 @@ class InitSource:
             f"--validity={DEFAULT_CALIB_VALIDITY}",
             "--create",
             "--doraise",
-            f"--mode=copy",
+            "--mode=copy",
             "--"]
 
         command += detectorMaps
@@ -1271,7 +1274,7 @@ def processYaml(yamlFile: str) -> Tuple[InitSource, Dict[str, CalibBlock], Dict[
     with open(yamlFile) as fd:
         content = yaml.load(fd, Loader=yaml.CSafeLoader)
 
-    initSource = InitSource.fromYaml(content["init"])
+    initSource = InitSource.fromYaml(content["init"]) if "init" in content else None
 
     calibBlocks = {}
     for yamlBlock in content.get("calibBlock", []):
@@ -1416,7 +1419,8 @@ def generateCommands(
         output: Union[str, TextIO] = "a.sh",
         overwriteCalib: bool = False,
         rerun: str = "noname",
-        scienceSteps: Iterable[str] = []):
+        scienceSteps: Iterable[str] = [],
+        allowErrors: bool = False):
     """Generate shell commands according to ``specFile``
 
     Parameters
@@ -1456,6 +1460,8 @@ def generateCommands(
     scienceSteps : `Iterable[str]`
         pipeline steps to execute.
         If this is empty, all steps are executed.
+    allowErrors : `bool`, optional
+        Allow processing errors to be non-fatal?
     """
     if clean and copyMode == "link":
         raise ValueError("When `copyMode`=link, `clean` must not be True.")
@@ -1501,9 +1507,14 @@ def generateCommands(
         logger.info("Start writing shell commands on '%s'", getattr(fout, "name", "(fileobj)"))
 
         print("#!/bin/sh", file=fout)
-        print("set -eux", file=fout)
+        setopts = "ux"
+        if not allowErrors:
+            setopts += "e"
+        print(f"set -{setopts}", file=fout)
 
         if init:
+            if initSource is None:
+                raise RuntimeError("No 'init' block to execute")
             initSource.execute(logger, fout, dataDir, calib)
 
         for blockName in blocks:
@@ -1520,3 +1531,5 @@ def generateCommands(
                     steps=scienceSteps, processes=processes, devel=devel)
 
         logger.info("End writing shell commands on '%s'", getattr(fout, "name", "(fileobj)"))
+
+    os.chmod(output, os.stat(output).st_mode | stat.S_IXUSR | stat.S_IXGRP)
