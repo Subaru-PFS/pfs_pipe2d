@@ -26,6 +26,7 @@ __all__ = []  # modified by @export
 import lsst.log
 
 import argparse
+import collections.abc
 import contextlib
 import dataclasses
 import enum
@@ -37,7 +38,7 @@ import stat
 
 import yaml
 
-from typing import Any, Dict, Iterable, List, Mapping, Optional, TextIO, Tuple, Type, Union
+from typing import Any, Collection, Dict, Iterable, List, Mapping, Optional, TextIO, Tuple, Type, Union
 
 
 def export(obj):
@@ -129,7 +130,7 @@ class CommandConfig:
         self.configfile = configfile
 
     @classmethod
-    def fromYaml(cls, yamlBlock: Mapping[str, Any]) -> "CommandConfig":
+    def fromYaml(cls, yamlBlock: Mapping[str, Any], *, remove: bool = False) -> "CommandConfig":
         """Extract "config: ..." from ``yamlBlock``.
 
         Parameters
@@ -141,12 +142,17 @@ class CommandConfig:
                 A config string, or a list of config strings.
             ``"configfile"``
                 Path to a configuration file
+        remove : `bool`
+            Remove those keys from `yamlBlock` that are used by this method.
 
         Returns
         -------
         config : `CommandConfig`
         """
-        configs = yamlBlock.get("config", [])
+        if not remove:
+            yamlBlock = dict(yamlBlock)
+
+        configs = yamlBlock.pop("config", [])
         if isinstance(configs, str):
             configs = [configs]
         if not isinstance(configs, list):
@@ -154,7 +160,7 @@ class CommandConfig:
 
         configs = [ensureKeyEqValue(str(x)) for x in configs]
 
-        configfile = yamlBlock.get("configfile")
+        configfile = yamlBlock.pop("configfile", None)
         if not (configfile is None or isinstance(configfile, str)):
             raise RuntimeError(f"'configfile' must be a string: '{configfile}'")
 
@@ -196,7 +202,9 @@ class SourceFilter:
         self.id = list(id)
 
     @classmethod
-    def fromYaml(cls, yamlBlock: Mapping[str, Any], *, key: str = "id") -> "SourceFilter":
+    def fromYaml(
+            cls, yamlBlock: Mapping[str, Any],
+            *, key: str = "id", remove: bool = False) -> "SourceFilter":
         """Extract "id:..." from ``yamlBlock``.
 
         Parameters
@@ -207,16 +215,20 @@ class SourceFilter:
             ``"id"``
                 A string like ``"field=BIAS"``, or
                 a list of str like ``["field=BIAS", "dateObs=2000-01-01"]``
-
         key : `str`
             If you give this argument, ``key`` will be used
             instead of ``"id"`` for the key of the extracted field.
+        remove : `bool`
+            Remove those keys from `yamlBlock` that are used by this method.
 
         Returns
         -------
         sourceFilter : `SourceFilter`
         """
-        id = yamlBlock.get(key, [])
+        if not remove:
+            yamlBlock = dict(yamlBlock)
+
+        id = yamlBlock.pop(key, [])
         if isinstance(id, str):
             id = [id]
         if not isinstance(id, list):
@@ -288,7 +300,15 @@ class InitSource:
         -------
         initSource : `InitSource`
         """
-        return cls(yamlBlock["dirName"], yamlBlock["detectorMapFmt"], yamlBlock["arms"])
+        yamlBlock = dict(yamlBlock)
+        dirName = yamlBlock.pop("dirName")
+        detectorMapFmt = yamlBlock.pop("detectorMapFmt")
+        arms = yamlBlock.pop("arms")
+
+        if yamlBlock:
+            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+
+        return cls(dirName, detectorMapFmt, arms)
 
     def execute(self, logger: lsst.log.Log, fout: TextIO, dataDir: str, calib: str):
         """Put to ``fout`` commands to ingest this source.
@@ -395,9 +415,14 @@ class CalibSource:
         -------
         calibSource : `CalibSource`
         """
-        config = CommandConfig.fromYaml(yamlBlock)
-        source = SourceFilter.fromYaml(yamlBlock)
-        validity = int(yamlBlock.get("validity", DEFAULT_CALIB_VALIDITY))
+        yamlBlock = dict(yamlBlock)
+        config = CommandConfig.fromYaml(yamlBlock, remove=True)
+        source = SourceFilter.fromYaml(yamlBlock, remove=True)
+        validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
+
+        if yamlBlock:
+            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+
         return cls(config, source, validity)
 
     @staticmethod
@@ -622,15 +647,23 @@ class BootstrapSource(
         -------
         bootstrapSource : `BootstrapSource`
         """
+        yamlBlock = dict(yamlBlock)
+
         groups = []
-        for block in yamlBlock.get("group", []):
-            config = CommandConfig.fromYaml(block)
-            flatSource = SourceFilter.fromYaml(block, key="flatId")
-            arcSource = SourceFilter.fromYaml(block, key="arcId")
+        for block in ensureInstance(yamlBlock.pop("group", []), list):
+            block = ensureInstance(block, dict)
+            config = CommandConfig.fromYaml(block, remove=True)
+            flatSource = SourceFilter.fromYaml(block, key="flatId", remove=True)
+            arcSource = SourceFilter.fromYaml(block, key="arcId", remove=True)
+            if block:
+                raise RuntimeError(f'Invalid keys for {cls.__name__}["group"]: {list(block.keys())}')
             groups.append(
                 BootstrapSourceSubgroup(config=config, flatSource=flatSource, arcSource=arcSource))
 
-        validity = int(yamlBlock.get("validity", DEFAULT_CALIB_VALIDITY))
+        validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
+
+        if yamlBlock:
+            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
 
         return cls(groups, validity)
 
@@ -763,9 +796,17 @@ class FiberProfilesSource(
         -------
         fiberProfilesSource : `FiberProfilesSource`
         """
-        groups = [_FiberProfilesNoCombineSource.fromYaml(block) for block in yamlBlock["group"]]
-        config = CommandConfig.fromYaml(yamlBlock)
-        validity = int(yamlBlock.get("validity", DEFAULT_CALIB_VALIDITY))
+        yamlBlock = dict(yamlBlock)
+        groups = [
+            _FiberProfilesNoCombineSource.fromYaml(ensureInstance(block, dict))
+            for block in ensureInstance(yamlBlock.pop("group"), list)
+        ]
+        config = CommandConfig.fromYaml(yamlBlock, remove=True)
+        validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
+
+        if yamlBlock:
+            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+
         return cls(config, groups, validity)
 
     def execute(
@@ -912,11 +953,21 @@ class CalibBlock:
         calibBlock : `CalibBlock`
             Constructed ``CalibBlock`` instance.
         """
-        name = yamlBlock["name"]
-        sources = {
-            typeName: CalibSource.getSubclass(typeName).fromYaml(block)
-            for typeName, block in yamlBlock.items() if typeName != "name"
-        }
+        yamlBlock = dict(yamlBlock)
+
+        name = yamlBlock.pop("name", None)
+        if name is None:
+            raise RuntimeError(f'{cls.__name__} must have "name" key.')
+
+        try:
+            sources = {
+                typeName: CalibSource.getSubclass(typeName).fromYaml(ensureInstance(block, dict))
+                for typeName, block in yamlBlock.items() if typeName != "name"
+            }
+        except Exception as e:
+            exceptionAddInfo(e, f"context: {cls.__name__}:{name}")
+            raise
+
         return cls(name, sources)
 
     def execute(
@@ -1028,7 +1079,13 @@ class ScienceStep:
         -------
         scienceStep : `ScienceStep`
         """
-        config = CommandConfig.fromYaml(yamlBlock)
+        yamlBlock = dict(yamlBlock)
+
+        config = CommandConfig.fromYaml(yamlBlock, remove=True)
+
+        if yamlBlock:
+            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+
         return cls(config)
 
     @staticmethod
@@ -1194,12 +1251,25 @@ class ScienceBlock:
         scienceBlock : `ScienceBlock`
             Constructed ``ScienceBlock`` instance.
         """
-        name = yamlBlock["name"]
-        source = SourceFilter.fromYaml(yamlBlock)
-        policies = {
-            step: ScienceStep.getSubclass(step).fromYaml(block)
-            for step, block in yamlBlock.get("policy", {}).items()
-        }
+        yamlBlock = dict(yamlBlock)
+
+        name = yamlBlock.pop("name", None)
+        if name is None:
+            raise RuntimeError(f'{cls.__name__} must have "name" key.')
+
+        try:
+            source = SourceFilter.fromYaml(yamlBlock, remove=True)
+            policies = {
+                step: ScienceStep.getSubclass(step).fromYaml(ensureInstance(block, dict))
+                for step, block in ensureInstance(yamlBlock.pop("policy", {}), dict).items()
+            }
+
+            if yamlBlock:
+                raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+        except Exception as e:
+            exceptionAddInfo(e, f"context: {cls.__name__}:{name}")
+            raise
+
         return cls(name, source, policies)
 
     def execute(
@@ -1272,19 +1342,26 @@ def processYaml(yamlFile: str) -> Tuple[InitSource, Dict[str, CalibBlock], Dict[
         Mapping from block names to ScienceBlock.
     """
     with open(yamlFile) as fd:
-        content = yaml.load(fd, Loader=yaml.CSafeLoader)
+        content = ensureInstance(yaml.load(fd, Loader=yaml.CSafeLoader), dict)
 
-    initSource = InitSource.fromYaml(content["init"]) if "init" in content else None
+    init = content.pop("init", None)
+    if init is None:
+        initSource = None
+    else:
+        initSource = InitSource.fromYaml(ensureInstance(init, dict))
 
     calibBlocks = {}
-    for yamlBlock in content.get("calibBlock", []):
-        block = CalibBlock.fromYaml(yamlBlock)
+    for yamlBlock in ensureInstance(content.pop("calibBlock", []), list):
+        block = CalibBlock.fromYaml(ensureInstance(yamlBlock, dict))
         calibBlocks[block.name] = block
 
     scienceBlocks = {}
-    for yamlBlock in content.get("scienceBlock", []):
-        block = ScienceBlock.fromYaml(yamlBlock)
+    for yamlBlock in ensureInstance(content.pop("scienceBlock", []), list):
+        block = ScienceBlock.fromYaml(ensureInstance(yamlBlock, dict))
         scienceBlocks[block.name] = block
+
+    if content:
+        raise RuntimeError(f"Invalid global keys in {yamlFile}: {list(content.keys())}")
 
     return initSource, calibBlocks, scienceBlocks
 
@@ -1335,6 +1412,41 @@ def unique(seq: Iterable[Any]) -> List[Any]:
     return ret
 
 
+def ensureInstance(instance: Any, types: Union[type, Collection[type]]) -> Any:
+    """Ensure that ``instance`` is an instance of one of ``types``.
+
+    Parameters
+    ----------
+    instance : `Any`
+        An instance to test.
+    types : `Union[type, Collection[type]]`
+        A type or a list of types.
+
+    Raises
+    ------
+    TypeError
+        Raised if ``instance`` is not an instance of one of ``types``.
+
+    Returns
+    -------
+    instance : `Any`
+        The same object as the argument.
+    """
+    if not isinstance(instance, types):
+        if isinstance(types, collections.abc.Collection):
+            typename = f"one of {', '.join(f'`{t.__name__}`' for t in types)}"
+        else:
+            typename = f"`{types.__name__}`"
+
+        value = str(instance)
+        if len(value) > 50:
+            value = value[:47] + "..."
+
+        raise TypeError(f"illegal type (must be {typename}): `{type(instance).__name__}` (value: '{value}')")
+
+    return instance
+
+
 def ensureKeyEqValue(s: str) -> str:
     """Ensure that ``s`` is in ``key=value`` format.
     If not, raise ValueError.
@@ -1364,6 +1476,26 @@ def ensureKeyEqValue(s: str) -> str:
         raise ValueError(f"illegal string that has to be 'key=value': '{s}'")
 
     return s
+
+
+def exceptionAddInfo(exception: Exception, info: str):
+    """Add information to an exception object.
+
+    The information is appended to the first argument of the exception object
+    if the argument is a string. Otherwise, the information is appended to
+    the argument list of the exception object.
+
+    Parameters
+    ----------
+    exception : `Exception`
+        Exception object to modify.
+    info : `str`
+        Information to add to `exception`
+    """
+    if exception.args and isinstance(exception.args[0], str):
+        exception.args = (f"{exception.args[0]} [{info}]",) + exception.args[1:]
+    else:
+        exception.args += (info,)
 
 
 @contextlib.contextmanager
