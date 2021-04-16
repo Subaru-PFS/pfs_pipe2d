@@ -1,9 +1,12 @@
 import itertools
 
+import numpy as np
+
 import lsst.utils.tests
 
 from pfs.datamodel import PfsDesign
 from pfs.utils.dummyCableB import DummyCableBDatabase, makePfsDesign, main
+from pfs.utils.fibers import calculateFiberId
 from pfs.drp.stella.tests import runTests, temporaryDirectory
 
 display = None
@@ -48,7 +51,9 @@ class DummyCableBTestCase(lsst.utils.tests.TestCase):
                 argv = ["--directory", tempDir] + list(names)
                 main(argv)
                 design = PfsDesign.read(pfsDesignId, tempDir)
-                self.assertFloatsEqual(design.fiberId, self.db.getFiberIds(*names))
+                fiberHoles = self.db.getFiberIds(*names)
+                expect = np.concatenate([calculateFiberId(spec, fiberHoles) for spec in (1, 2, 3, 4)])
+                self.assertFloatsEqual(design.fiberId, expect)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
