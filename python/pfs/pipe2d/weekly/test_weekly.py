@@ -114,9 +114,10 @@ class ArcTestCase(lsst.utils.tests.TestCase):
         for arm in self.arms:
             detMap = self.butler.get("detectorMap", visit=self.visit, arm=arm)
             lines = self.butler.get("arcLines", visit=self.visit, arm=arm)
+            good = ~lines.flag & (lines.status == 0)
             for fiberId in set(lines.fiberId):
                 with self.subTest(arm=arm, fiberId=fiberId):
-                    select = lines.fiberId == fiberId
+                    select = (lines.fiberId == fiberId) & good
                     num = select.sum()
                     self.assertGreater(num, 20)
 
