@@ -111,9 +111,16 @@ class ArcTestCase(lsst.utils.tests.TestCase):
 
     def testResiduals(self):
         """Test that wavelength fit residuals are reasonable"""
+        tolerance = {"b": 0.05,
+                     "r": 0.02,
+                     "m": 0.01,
+                     "n": 0.03,
+                     }  # tolerance for each arm, nm
         for arm in self.arms:
+            atol = tolerance[arm]
             detMap = self.butler.get("detectorMap", visit=self.visit, arm=arm)
             lines = self.butler.get("arcLines", visit=self.visit, arm=arm)
+            fitWavelength = detMap.findWavelength(lines.fiberId, lines.y)
             good = ~lines.flag & (lines.status == 0)
             for fiberId in set(lines.fiberId):
                 with self.subTest(arm=arm, fiberId=fiberId):
@@ -121,11 +128,12 @@ class ArcTestCase(lsst.utils.tests.TestCase):
                     num = select.sum()
                     self.assertGreater(num, 20)
 
-                    fitWavelength = detMap.findWavelength(fiberId, lines.y[select])
-                    residual = lines.wavelength[select] - fitWavelength
+                    residual = lines.wavelength[select] - fitWavelength[select]
                     lq, median, uq = np.percentile(residual, (25.0, 50.0, 75.0))
-                    self.assertFloatsAlmostEqual(median, 0.0, atol=2.0e-2)
-                    self.assertFloatsAlmostEqual(0.741*(uq - lq), 0.0, atol=2.0e-2)
+                    robustRms = 0.741*(uq - lq)
+
+                    self.assertFloatsAlmostEqual(median, 0.0, atol=atol)
+                    self.assertFloatsAlmostEqual(robustRms, 0.0, atol=atol)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
