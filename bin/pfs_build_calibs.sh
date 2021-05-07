@@ -143,16 +143,19 @@ if (( ${#FIBERPROFILES[@]} > 0 )); then
                 $fiberProfilesIdString $batchArgs || exit 1
 
     shopt -s nullglob
-    for detector in b1 r1 m1 n1; do
-        profiles=($REPO/rerun/$RERUN/fiberProfiles/FIBERPROFILES/pfsFiberProfiles-*-${detector}.fits)
-        if (( ${#profiles[@]} == 0 )); then
-            echo "No profiles for detector ${detector}."
-            continue
-        fi
-        mkdir -p $REPO/rerun/$RERUN/fiberProfiles-combined/
-        combineFiberProfiles.py $REPO/rerun/$RERUN/fiberProfiles-combined/$(basename ${profiles[0]}) ${profiles[*]}
-        ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
-                $REPO/rerun/$RERUN/fiberProfiles-combined/pfsFiberProfiles-*-${detector}.fits || exit 1
+    for spectrograph in 1 2 3 4; do
+        for arm in b r m n; do
+            detector="${arm}${spectrograph}"
+            profiles=($REPO/rerun/$RERUN/fiberProfiles/FIBERPROFILES/pfsFiberProfiles-*-${detector}.fits)
+            if (( ${#profiles[@]} == 0 )); then
+                echo "No profiles for detector ${detector}."
+                continue
+            fi
+            mkdir -p $REPO/rerun/$RERUN/fiberProfiles-combined/
+            combineFiberProfiles.py $REPO/rerun/$RERUN/fiberProfiles-combined/$(basename ${profiles[0]}) ${profiles[*]}
+            ingestPfsCalibs.py $REPO --calib $CALIB --validity $VALIDITY --mode=copy \
+                    $REPO/rerun/$RERUN/fiberProfiles-combined/pfsFiberProfiles-*-${detector}.fits || exit 1
+        done
     done
     ( $CLEANUP && rm -r $REPO/rerun/$RERUN/fiberProfiles $REPO/rerun/$RERUN/fiberProfiles-combined ) || true
 fi
