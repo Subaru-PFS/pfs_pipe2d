@@ -66,9 +66,16 @@ The JIRA ticket name is stored in the GitHub API in the above
 format. This is used to parse the ticket number.
 """
 
-TAG_REGEX = r"^([0-9]+)\.([0-9]+)(\.[0-9]+)?$"
-"""Git tag regular expression (`str`).
-The format of a tag. In the above case, M.m[.p] for releases.
+TAG_REGEX_WEEKLY = r"^w\.([0-9]{4})\.([0-9]{2})?$"
+"""Git tag regular expression for weeklies (`str`).
+The format of a tag.
+In the above case, w.YYYY.WW .
+"""
+
+TAG_REGEX_RELEASES = r"^([0-9]+)\.([0-9]+)(\.[0-9]+)?$"
+"""Git tag regular expression for releases (`str`).
+The format of a tag.
+In the above case, M.m[.p] .
 """
 
 NOT_TAGGED = 'NOT-TAGGED'
@@ -310,7 +317,7 @@ class GitHubMediator:
         tag_commit : `dict` (`str`: `str`)
             mapping of tag to commit sha
         """
-        pattern = re.compile(TAG_REGEX)
+        pattern = re.compile(TAG_REGEX_WEEKLY)
         tag_commit = {}
         pages = self.paginator.pages(url)
         for page in pages:
@@ -616,7 +623,7 @@ def tag_key(tagname):
     sort_key : `int`
         numerical key for sorting.
     """
-    return tuple(int(i) for i in tagname.split('.'))
+    return tuple(int(i) for i in tagname[2:].split('.'))
 
 
 def write_tag(writer, tagname, tickets):
@@ -762,6 +769,9 @@ def main():
     parser.add_argument("--authmethod", '-m', default='internal',
                         choices=['external', 'internal', 'noauth'],
                         help="Authentication method.")
+    parser.add_argument("--tag", '-t', default='weekly',
+                        choices=['weekly', 'release'],
+                        help="Which tag type to group tickets by.")
     parser.add_argument('--authfile', '-a',
                         help='file providing GitHub API authentication')
     parser.add_argument("--loglevel", "-L",
