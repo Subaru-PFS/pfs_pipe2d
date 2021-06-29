@@ -48,6 +48,11 @@ install_lsst () {
         eups distrib install $pp $install_args --no-server-tags
     done
     curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python
+
+    # Use MKL, for faster FFTs etc. This breaks something in the LSST stack that we don't care about.
+    conda uninstall -y nomkl
+    conda install -y mkl mkl-service
+    conda install -y -f numpy scipy  # Ensure these packages are configured to use MKL
 }
 
 
