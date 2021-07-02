@@ -1,5 +1,5 @@
 # To run generateCommands.py with this spec file,
-# you have to set environment variable DATADIR,
+# you have to set environment variable $DRP_PFS_DATA_DIR,
 # in which initial detectorMap files reside.
 
 #
@@ -9,7 +9,7 @@
 # not an absolute path
 #
 init:
-  dirName: "$DATADIR"
+  dirName: "$DRP_PFS_DATA_DIR/detectorMap"
   arms: [b1, r1, n1, m1]
   detectorMapFmt: "detectorMap-sim-{arm}.fits"
 
