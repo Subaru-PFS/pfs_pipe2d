@@ -63,10 +63,6 @@ cleanFlag=""
 ( $DEVELOPER ) && develFlag="--devel"
 ( $CLEANUP ) && cleanFlag="--clean"
 
-# DATADIR (where detectorMap files reside) has to be exported
-# because it is used in the spec file.
-export DATADIR
-
 # Calibs for brn
 generateCommands.py $WORKDIR \
     $HERE/../examples/weekly.yaml \

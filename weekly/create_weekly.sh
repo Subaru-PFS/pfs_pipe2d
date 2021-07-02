@@ -4,20 +4,27 @@ usage() {
     # Display usage and quit
     echo "Create simulated images for the weekly." 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-f FIBERS] [-j NUMCORES] [-n]" 1>&2
+    echo "Usage: $0 [-f FIBERS] [-j NUMCORES] [-n] OBJ_SPECTRA_DIR" 1>&2
     echo "" 1>&2
     echo "    -f <FIBERS> : fibers to activate (all,lam,...)" 1>&2
     echo "    -j <NUMCORES> : number of cores to use" 1>&2
     echo "    -n : don't actually run the simulator" 1>&2
+    echo "    OBJ_SPECTRA_DIR : location of object spectra" 1>&2
     echo "" 1>&2
     exit 1
 }
+
+if [[ -z "${OBJ_SPECTRA_DIR}" ]]; then
+    echo "ERROR: Environment variable OBJ_SPECTRA_DIR is undefined."
+    echo " This is needed to simulate astrophysical objects"
+    exit 1
+fi
 
 # Parse command-line arguments
 NUMCORES=1
 DRYRUN=false
 FIBERS=all
-while getopts "hf:j:n" opt; do
+while getopts "hf:j:d:n" opt; do
     case "${opt}" in
         f)
             FIBERS=${OPTARG}
@@ -34,7 +41,8 @@ while getopts "hf:j:n" opt; do
     esac
 done
 shift $((OPTIND-1))
-if [ -n "$1" ]; then
+OBJ_SPECTRA_DIR=$1; shift
+if [ -z "$OBJ_SPECTRA_DIR" ] || [ -n "$1" ]; then
     usage
 fi
 
@@ -145,8 +153,8 @@ make_brmn 1 --pfsDesignId 1 --exptime 5 --type arc --lamps HG
 make_brmn 1 --pfsDesignId 1 --exptime 1 --type arc --lamps XE
 make_brmn 1 --pfsDesignId 1 --exptime 1 --type arc --lamps KR
 # Objects
-make_brmn 3 --pfsDesignId 1 --exptime 1800 --type object
-make_brmn 2 --pfsDesignId 2 --exptime 1800 --type object
-make_brmn 1 --pfsDesignId 1 --exptime 300 --type object
+make_brmn 3 --pfsDesignId 1 --exptime 1800 --type object --objSpectraDir $OBJ_SPECTRA_DIR
+make_brmn 2 --pfsDesignId 2 --exptime 1800 --type object --objSpectraDir $OBJ_SPECTRA_DIR
+make_brmn 1 --pfsDesignId 1 --exptime 300 --type object --objSpectraDir $OBJ_SPECTRA_DIR
 
 IFS=$'\n' printf '%s\n' "${COMMANDS[@]}" | xargs -d $'\n' -n 1 -P $NUMCORES $( ( ! $DRYRUN ) && echo "--verbose") sh -c
