@@ -119,8 +119,8 @@ make_brmn() {
     local bn
     local mm
     for ((ii=0, bn=startBR, mm=startMM; ii < num; ii++, bn++, mm++)); do
-        ( $DRYRUN ) || ln -s $(get_filename $bn b) $(get_filename $mm b)
-        ( $DRYRUN ) || ln -s $(get_filename $bn n) $(get_filename $mm n)
+        $( ( $DRYRUN ) && echo "echo " )ln -s $(get_filename $bn b) $(get_filename $mm b)
+        $( ( $DRYRUN ) && echo "echo " )ln -s $(get_filename $bn n) $(get_filename $mm n)
     done
 }
 
