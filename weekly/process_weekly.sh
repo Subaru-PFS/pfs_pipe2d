@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DATADIR="/projects/HSC/PFS/weekly-20210204"
+DATADIR="/projects/HSC/PFS/weekly-20210819"
 RERUN="weekly"
 CORES=10
 CLEANUP=true
@@ -62,10 +62,6 @@ develFlag=""
 cleanFlag=""
 ( $DEVELOPER ) && develFlag="--devel"
 ( $CLEANUP ) && cleanFlag="--clean"
-
-# DATADIR (where detectorMap files reside) has to be exported
-# because it is used in the spec file.
-export DATADIR
 
 # Calibs for brn
 generateCommands.py $WORKDIR \
