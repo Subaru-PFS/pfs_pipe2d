@@ -53,6 +53,10 @@ install_lsst () {
     conda uninstall -y nomkl
     conda install -y mkl mkl-service
     conda install -y -f numpy scipy  # Ensure these packages are configured to use MKL
+
+    # Add a few extras that we want for PFS
+    conda install -y --no-update-dependencies jupyter ipython ipympl psycopg2 'sqlalchemy>=1.4' ipywidgets
+    conda install -y --no-update-dependencies -c conda-forge jupyter_contrib_nbextensions astroplan ipyevents ginga
 }
 
 
