@@ -43,10 +43,18 @@ calibBlock:
     name: arc_brn
     detectorMap:
       id: "visit=39..45:2"
+      config:
+        - "fitDetectorMap.doSlitOffsets=True"
+        - "reduceExposure.readLineList.exclusionRadius=0.3"
+        - "fitDetectorMap.minSignalToNoise=20"
   -
     name: arc_m
     detectorMap:
       id: ["visit=40..46:2", "arm=m"]
+      config:
+        - "fitDetectorMap.doSlitOffsets=True"
+        - "reduceExposure.readLineList.exclusionRadius=0.3"
+        - "fitDetectorMap.minSignalToNoise=20"
 
 #
 # Blocks of science pipelines
