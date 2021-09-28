@@ -115,7 +115,7 @@ class ArcTestCase(lsst.utils.tests.TestCase):
         tolerance = {"b": 0.05,
                      "r": 0.02,
                      "m": 0.01,
-                     "n": 0.03,
+                     "n": 0.05,
                      }  # tolerance for each arm, nm
         for arm in self.arms:
             atol = tolerance[arm]
