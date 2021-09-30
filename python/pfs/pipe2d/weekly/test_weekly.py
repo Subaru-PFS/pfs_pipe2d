@@ -91,7 +91,8 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
                 lsf = self.butler.get("pfsObjectLsf", dataId)
                 badMask = spectrum.flags.get("NO_DATA")
                 select = (spectrum.mask & badMask) == 0
-                self.assertGreater(select.sum(), 0.75*len(spectrum), "Too many masked pixels")
+                minFrac = dict(brn=0.75, bmn=0.70)[self.configuration]
+                self.assertGreater(select.sum(), minFrac*len(spectrum), "Too many masked pixels")
                 self.assertFalse(np.all(spectrum.sky[select] == 0))
                 self.assertTrue(np.all(spectrum.variance[select] > 0))
                 self.assertIsInstance(lsf, Lsf)
@@ -114,7 +115,7 @@ class ArcTestCase(lsst.utils.tests.TestCase):
         tolerance = {"b": 0.05,
                      "r": 0.02,
                      "m": 0.01,
-                     "n": 0.03,
+                     "n": 0.05,
                      }  # tolerance for each arm, nm
         for arm in self.arms:
             atol = tolerance[arm]
