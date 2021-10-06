@@ -1,0 +1,10 @@
+#
+# Blocks of science pipelines
+#
+scienceBlock:
+  -
+    name: brn
+    id: "visit=1000^1001^1004^1005"
+  -
+    name: bmn
+    id: "visit=1002^1003^1006^1007"
