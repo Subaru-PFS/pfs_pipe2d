@@ -8,7 +8,7 @@ DEVELOPER=false
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-d DATADIR] [-r <RERUN>] [-c CORES] [-n] WORKDIR" 1>&2
+    echo "Usage: $0 [-d DATADIR] [-r <RERUN>] [-c CORES] [-n] [-D] WORKDIR" 1>&2
     echo "" 1>&2
     echo "    -d <DATADIR> : path to raw data (default: ${DATADIR})" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: ${RERUN})" 1>&2
@@ -45,6 +45,10 @@ done
 shift $((OPTIND-1))
 WORKDIR=$1; shift
 if [ -z "$WORKDIR" ] || [ -n "$1" ]; then
+    usage
+fi
+if [ ! -d "$DATADIR" ]; then
+    echo "Error: DATADIR directory $DATADIR does not exist."
     usage
 fi
 HERE=$(unset CDPATH && cd "$(dirname "$0")" && pwd)
