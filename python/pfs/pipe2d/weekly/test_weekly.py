@@ -117,17 +117,19 @@ class ArcTestCase(lsst.utils.tests.TestCase):
                      "m": 0.01,
                      "n": 0.05,
                      }  # tolerance for each arm, nm
+        minSigNoise = 10  # Minimum (flux) signal-to-noise for arc lines to consider
         for arm in self.arms:
             atol = tolerance[arm]
             detMap = self.butler.get("detectorMap", visit=self.visit, arm=arm)
             lines = self.butler.get("arcLines", visit=self.visit, arm=arm)
             fitWavelength = detMap.findWavelength(lines.fiberId, lines.y)
             good = ~lines.flag & (lines.status == 0)
+            sigNoise = lines.intensity/lines.intensityErr
             for fiberId in set(lines.fiberId):
                 with self.subTest(arm=arm, fiberId=fiberId):
-                    select = (lines.fiberId == fiberId) & good
+                    select = (lines.fiberId == fiberId) & good & (sigNoise > minSigNoise)
                     num = select.sum()
-                    self.assertGreater(num, 20)
+                    self.assertGreater(num, 10)
 
                     residual = lines.wavelength[select] - fitWavelength[select]
                     lq, median, uq = np.percentile(residual, (25.0, 50.0, 75.0))
