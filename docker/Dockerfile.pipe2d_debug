@@ -1,9 +1,9 @@
 ARG VERSION=latest
 FROM paprice/pfs_pipe2d:$VERSION
 
-MAINTAINER paprice
-LABEL description="Subaru PFS 2D pipeline with debugging" \
-      name="paprice/pfs_pipe2d_debug"
+LABEL description="Subaru PFS 2D pipeline with debugging facilities"
+LABEL name="paprice/pfs_pipe2d_debug"
+LABEL author=price@astro.princeton.edu
 
 # Installs:
 # * libXft: required for ds9
@@ -15,15 +15,29 @@ USER root
 RUN yum install -y libXft gdb valgrind libatomic libunwind libunwind-devel cmake \
  && yum clean all -y
 
+USER pfs
+RUN . /opt/pfs/loadLSST.bash \
+ && mamba install -y libtool autoconf automake
+
 RUN cd /opt/pfs \
- && . /opt/rh/devtoolset-8/enable \
+ && . /opt/pfs/loadLSST.bash \
+ && curl -Lf https://github.com/libunwind/libunwind/archive/refs/tags/v1.6.2.tar.gz > libunwind.tar.gz \
+ && tar xvzf libunwind.tar.gz \
+ && cd $(tar -tzf libunwind.tar.gz | head -1 | cut -f1 -d"/") \
+ && autoreconf -i \
+ && ./configure --prefix=/opt/pfs \
+ && make \
+ && make install \
+ && rm /opt/pfs/libunwind.tar.gz
+
+RUN cd /opt/pfs \
+ && . /opt/pfs/loadLSST.bash \
  && curl -Lf https://api.github.com/repos/PaulPrice/igprof/tarball/price/20180315 > igprof.tar.gz \
  && tar xvzf igprof.tar.gz \
  && cd $(tar -tzf igprof.tar.gz | head -1 | cut -f1 -d"/") \
- && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-g -O3" -DUNWIND_INCLUDE_DIR=/usr/include -DUNWIND_LIBRARY=/usr/lib64/libunwind.so . \
+ && cmake -DCMAKE_INSTALL_PREFIX=/opt/pfs -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-g -O3" -DUNWIND_INCLUDE_DIR=/opt/pfs/include -DUNWIND_LIBRARY=/opt/pfs/lib/libunwind.so . \
  && make -j 6 \
  && make install \
- && ln -sf /usr/lib/libigprof.so /usr/lib64/libigprof.so \
  && rm /opt/pfs/igprof.tar.gz
 
 USER pfs

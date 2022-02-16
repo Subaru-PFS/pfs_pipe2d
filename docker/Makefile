@@ -1,5 +1,5 @@
 TAG=latest
-LSST_VERSION=v18_1_0
+LSST_VERSION=v23_0_0
 PFS_BRANCH=master
 CORES=4
 
@@ -23,7 +23,7 @@ lsst:	Dockerfile.lsst bin/install_lsst.sh
 #
 # Always fires, by virtue of .PHONY (for make) and FORCE argument (for docker)
 pipe2d:	Dockerfile.pipe2d bin/build_pfs.sh
-	docker build -t paprice/pfs_pipe2d:$(TAG) -f Dockerfile.pipe2d --build-arg INSTALL_ARGS="-b $(PFS_BRANCH)" --build-arg VERSION=$(TAG) --build-arg FORCE=$$(date +%s) .
+	docker build --progress=plain -t paprice/pfs_pipe2d:$(TAG) -f Dockerfile.pipe2d --build-arg INSTALL_ARGS="-b $(PFS_BRANCH)" --build-arg VERSION=$(TAG) --build-arg FORCE=$$(date +%s) .
 
 # PFS 2D pipeline with debugging tools
 pipe2d_debug: Dockerfile.pipe2d_debug
