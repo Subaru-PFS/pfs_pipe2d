@@ -19,7 +19,6 @@ unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHO
 
 # Need these on tiger to get the right environment
 . /etc/profile  # Get "module"
-module load rh/devtoolset/6  # Get modern compiler
 module load git  # For git-lfs
 module load anaconda3  # For python3 with 'requests', for release_pipe2d.py
 
@@ -28,6 +27,8 @@ set -ev
 # Build the pipeline
 mkdir -p $WORKDIR/build
 export SCONSFLAGS="-j $CORES"
+export OMP_NUM_THREADS=1
+export PYTHONWARNINGS="ignore:Gen2 Butler has been deprecated:FutureWarning:"
 $HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # Create release
 $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash

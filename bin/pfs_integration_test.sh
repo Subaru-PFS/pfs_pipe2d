@@ -116,6 +116,7 @@ else
 fi
 
 export OMP_NUM_THREADS=1
+export PYTHONWARNINGS="ignore:Gen2 Butler has been deprecated:FutureWarning:"
 drp_stella_data=${DRP_STELLA_DATA_DIR:-drp_stella_data}
 
 if ( $BUILD_CALIBS ); then
@@ -129,6 +130,8 @@ if ( $BUILD_CALIBS ); then
     ingestPfsImages.py $TARGET --mode=link \
         $drp_stella_data/raw/PFFA*.fits \
         -c clobber=True register.ignore=True
+
+    ingestCuratedCalibs.py "$TARGET" --calib "$TARGET"/CALIB "$DRP_PFS_DATA_DIR"/curated/pfs/defects
 
     # Build calibs
     generateCommands.py "$TARGET" \
