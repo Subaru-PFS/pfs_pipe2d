@@ -35,7 +35,7 @@ install_lsst () {
     unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
     # Using a version of newinstall subsequent to 23.0.0 because of much-reduced installation time (DM-33305).
     # This may result in messages about a version mismatch, but that shouldn't be a real concern.
-    curl -OL https://raw.githubusercontent.com/lsst/lsst/c680446b99ad1624abd932e9574a1811a968f90b/scripts/newinstall.sh
+    curl -OL https://raw.githubusercontent.com/lsst/lsst/${version}/scripts/newinstall.sh
 
     # Patch newinstall.sh to include mkl. This makes things like FFTs go faster.
     # Also include a few extras we want for PFS.
@@ -59,7 +59,7 @@ EOF
     source loadLSST.bash
 
     install_args=
-    [ -n "$version" ] && install_args+=" -t $version"
+    [ -n "$version" ] && install_args+=" -t $(echo $version | sed 's/\./_/g')"
     for pp in $packages ; do
         echo Installing package $pp: eups distrib install $pp $install_args --no-server-tags
         eups distrib install $pp $install_args --no-server-tags
@@ -71,7 +71,7 @@ EOF
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
-LSST_VERSION=v23_0_0
+LSST_VERSION=w.2022.17
 PACKAGES="pipe_drivers display_ds9 display_matplotlib ctrl_mpexec cp_pipe"
 FROM_SOURCE=false
 while getopts ":e:hL:p:S" opt; do

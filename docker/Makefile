@@ -1,5 +1,4 @@
 TAG=latest
-LSST_VERSION=v23_0_0
 PFS_BRANCH=master
 CORES=4
 
@@ -17,7 +16,7 @@ bin/install_pfs.sh:
 
 # LSST packages for PFS 2D pipeline
 lsst:	Dockerfile.lsst bin/install_lsst.sh
-	docker build -t paprice/pfs_lsst:$(TAG) -f Dockerfile.lsst --build-arg INSTALL_ARGS="-L $(LSST_VERSION)" .
+	docker build -t paprice/pfs_lsst:$(TAG) -f Dockerfile.lsst .
 
 # PFS 2D pipeline
 #
