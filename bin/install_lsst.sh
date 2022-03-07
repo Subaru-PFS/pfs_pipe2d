@@ -72,7 +72,7 @@ EOF
 BRANCH=
 LIMITED=false
 LSST_VERSION=v23_0_0
-PACKAGES="pipe_drivers display_ds9 display_matplotlib"
+PACKAGES="pipe_drivers display_ds9 display_matplotlib ctrl_mpexec cp_pipe"
 FROM_SOURCE=false
 while getopts ":e:hL:p:S" opt; do
     case "${opt}" in
