@@ -33,7 +33,7 @@ pushd $BUILD
 "$HERE"/bin/build_pfs.sh -b "$GIT_TAG" -t current
 
 # Build the distribution
-eups distrib create --server-dir=$DISTRIB/src -S REPOSITORY_PATH='git://github.com/Subaru-PFS/$PRODUCT.git' -f generic -d eupspkg pfs_pipe2d $VERSION
+eups distrib create --server-dir=$DISTRIB/src -S REPOSITORY_PATH='https://github.com/Subaru-PFS/$PRODUCT.git' -f generic -d eupspkg pfs_pipe2d $VERSION
 eups distrib create --server-dir=$DISTRIB/Linux64 -d tarball pfs_pipe2d $VERSION
 
 # Generate a changelog
