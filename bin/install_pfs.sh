@@ -16,7 +16,6 @@ usage() {
     echo "Usage: $0 [-b <BRANCH>] [-e] [-l] [-L <VERSION>] <PREFIX>" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : name of branch on PFS to install" 1>&2
-    echo "    -e : install bleeding-edge LSST" 1>&2
     echo "    -l : limited install (w/o drp_stella, pfs_pipe2d)" 1>&2
     echo "    -L <VERSION> : version of LSST to install" 1>&2
     echo "    -t : tag name to apply" 1>&2
@@ -37,7 +36,7 @@ abspath() {
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
-LSST_VERSION=v23_0_0
+LSST_VERSION=
 PACKAGES=
 TAG=
 LSST_FROM_SOURCE=false
@@ -45,9 +44,6 @@ while getopts ":b:eh$L:p:t:S" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
-            ;;
-        e)
-            LSST_VERSION=
             ;;
         L)
             LSST_VERSION=${OPTARG}
