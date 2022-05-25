@@ -1,9 +1,9 @@
 ARG VERSION=latest
 FROM paprice/pfs_lsst:$VERSION
 
-MAINTAINER paprice
-LABEL description="Subaru PFS 2D pipeline" \
-      name="paprice/pfs_pipe2d"
+LABEL description="Subaru PFS 2D pipeline"
+LABEL name="paprice/pfs_pipe2d"
+LABEL author=price@astro.princeton.edu
 
 ARG INSTALL_ARGS
 ARG INSTALL_DIR=/opt/pfs

@@ -37,7 +37,7 @@ abspath() {
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
-LSST_VERSION=v18_1_0
+LSST_VERSION=v23_0_0
 PACKAGES=
 TAG=
 LSST_FROM_SOURCE=false

@@ -33,7 +33,24 @@ install_lsst () {
     echo $fromSource
     unset EUPS_DIR EUPS_PATH EUPS_PKGROOT EUPS_SHELL SETUP_EUPS
     unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
-    curl -OL https://raw.githubusercontent.com/lsst/lsst/18.1.0/scripts/newinstall.sh
+    # Using a version of newinstall subsequent to 23.0.0 because of much-reduced installation time (DM-33305).
+    # This may result in messages about a version mismatch, but that shouldn't be a real concern.
+    curl -OL https://raw.githubusercontent.com/lsst/lsst/c680446b99ad1624abd932e9574a1811a968f90b/scripts/newinstall.sh
+
+    # Patch newinstall.sh to include mkl. This makes things like FFTs go faster.
+    # Also include a few extras we want for PFS.
+    patch -p0 <<EOF
+--- newinstall.sh	2022-02-17 18:12:04.000000000 -0500
++++ newinstall.sh	2022-02-17 18:12:17.000000000 -0500
+@@ -529,6 +529,7 @@
+ 		else
+ 			args+=("rubin-env=${ref}")
+ 		fi
++		args+=("mkl" "jupyter" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga")
+ 
+ 		$cmd mamba "${args[@]}"
+EOF
+
     local newinstallOptions="-bc"  # Batch mode; continue previous failed install
     if ( ! $fromSource ); then
         newinstallOptions+=" -t"
@@ -48,23 +65,14 @@ install_lsst () {
         eups distrib install $pp $install_args --no-server-tags
     done
     curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python
-
-    # Use MKL, for faster FFTs etc. This breaks something in the LSST stack that we don't care about.
-    conda uninstall -y nomkl
-    conda install -y mkl mkl-service
-    conda install -y -f numpy scipy  # Ensure these packages are configured to use MKL
-
-    # Add a few extras that we want for PFS
-    conda install -y --no-update-dependencies jupyter ipython ipympl psycopg2 'sqlalchemy>=1.4' ipywidgets
-    conda install -y --no-update-dependencies -c conda-forge jupyter_contrib_nbextensions astroplan ipyevents ginga
 }
 
 
 # Parse command-line arguments
 BRANCH=
 LIMITED=false
-LSST_VERSION=v18_1_0
-PACKAGES="pipe_drivers display_ds9 display_matplotlib"
+LSST_VERSION=v23_0_0
+PACKAGES="pipe_drivers display_ds9 display_matplotlib ctrl_mpexec cp_pipe"
 FROM_SOURCE=false
 while getopts ":e:hL:p:S" opt; do
     case "${opt}" in
