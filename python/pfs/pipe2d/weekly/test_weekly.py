@@ -124,7 +124,7 @@ class ArcTestCase(lsst.utils.tests.TestCase):
             lines = self.butler.get("arcLines", visit=self.visit, arm=arm)
             fitWavelength = detMap.findWavelength(lines.fiberId, lines.y)
             good = ~lines.flag & (lines.status == 0)
-            sigNoise = lines.intensity/lines.intensityErr
+            sigNoise = lines.flux/lines.fluxErr
             for fiberId in set(lines.fiberId):
                 with self.subTest(arm=arm, fiberId=fiberId):
                     select = (lines.fiberId == fiberId) & good & (sigNoise > minSigNoise)
