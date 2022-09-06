@@ -19,7 +19,7 @@ notify_on_exit () {
     # Notify originator of the result
     local flags=""
     if [[ -n $state ]]; then flags="--failed $state"; fi
-    $HERE/jenkins/jenkins_notify.py $flags --workdir $WORKDIR --username $USERNAME --description "weekly $TAG ($BRANCH)"
+    $HERE/jenkins/jenkins_notify.py $flags --workdir $WORKDIR --username pprice --description "weekly $TAG ($BRANCH)"
 }
 
 ################################################################################
