@@ -66,9 +66,9 @@ The JIRA ticket name is stored in the GitHub API in the above
 format. This is used to parse the ticket number.
 """
 
-TAG_REGEX = r"^([0-9]+)\.([0-9]+)(\.[0-9]+)?$"
+TAG_REGEX = r"^w\.(\d{4})\.(\d{2})$"
 """Git tag regular expression (`str`).
-The format of a tag. In the above case, M.m[.p] for releases.
+The format of a tag. In the above case, for weeklies eg w.2022.17 .
 """
 
 NOT_TAGGED = 'NOT-TAGGED'
