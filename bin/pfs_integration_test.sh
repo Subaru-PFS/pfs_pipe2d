@@ -225,7 +225,7 @@ if $RUN_GEN3; then
     pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/reduceExposure -p '$DRP_STELLA_DIR/pipelines/reduceExposure.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast
 
     # Science pipeline
-    pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast
+    pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib,skymaps -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast
 
     echo "Done with Gen3."
 fi
