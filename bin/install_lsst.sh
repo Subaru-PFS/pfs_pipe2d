@@ -46,7 +46,7 @@ install_lsst () {
  		else
  			args+=("rubin-env=${ref}")
  		fi
-+		args+=("mkl" "jupyter" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub")
++		args+=("mkl" "jupyter" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22")
  
  		$cmd mamba "${args[@]}"
 EOF
