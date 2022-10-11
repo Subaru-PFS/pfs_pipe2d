@@ -84,9 +84,9 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
             if target.catId == -1:
                 # Not a real target that we've processed
                 continue
-            with self.subTest(**target.identity):
-                dataId = target.identity.copy()
-                dataId.update(nVisit=len(self.visits), pfsVisitHash=calculatePfsVisitHash(self.visits))
+            dataId = target.identity.copy()
+            dataId.update(nVisit=len(self.visits), pfsVisitHash=calculatePfsVisitHash(self.visits))
+            with self.subTest(**dataId):
                 spectrum = self.butler.get("pfsObject", dataId)
                 lsf = self.butler.get("pfsObjectLsf", dataId)
                 badMask = spectrum.flags.get("NO_DATA")
@@ -126,7 +126,7 @@ class ArcTestCase(lsst.utils.tests.TestCase):
             good = ~lines.flag & (lines.status == 0)
             sigNoise = lines.flux/lines.fluxErr
             for fiberId in set(lines.fiberId):
-                with self.subTest(arm=arm, fiberId=fiberId):
+                with self.subTest(visit=self.visit, arm=arm, fiberId=fiberId):
                     select = (lines.fiberId == fiberId) & good & (sigNoise > minSigNoise)
                     num = select.sum()
                     self.assertGreater(num, 10)
