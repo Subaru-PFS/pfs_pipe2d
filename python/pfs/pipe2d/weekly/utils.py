@@ -57,7 +57,7 @@ def getVisitsByBlockName(blockName):
     filename = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "examples", "weekly.yaml")
     initSource, calibBlocks, scienceBlocks = generateCommands.processYaml(filename)
     idList = scienceBlocks[blockName].source.id
-    if not (len(idList) == 1 and idList[0].startswith("visit=")):
+    if not (len(idList) != 0 and idList[0].startswith("visit=")):
         raise RuntimeError(
             f"examples/weekly.yaml: 'id' field of scienceBlock '{blockName}' must be 'visit=...'")
 
