@@ -40,9 +40,9 @@ The regular expression of the standard message generated when a ticket branch
 is merged to master.
 """
 
-TAG_REGEX = re.compile(r"^w\.(\d{4})\.(\d{2})$")
+TAG_REGEX = re.compile(r"^w\.(\d{4})\.(\d{2}[a-zA-Z]*)$")
 """Git tag regular expression (`re.Pattern`).
-The format of a tag. In the above case, for weeklies eg w.2022.17 .
+The format of a tag. In the above case, for weeklies eg 'w.2022.17', 'w.2022.40a' .
 """
 
 NOT_TAGGED = "NOT-TAGGED"
@@ -277,7 +277,7 @@ def writeTagSummary(
 
 
 def tagKey(tagname: str) -> Tuple[int, ...]:
-    """Converts a tagname ("w.YYYY.WW") into a key for sorting.
+    """Converts a tagname ("w.YYYY.WWx") into a key for sorting.
 
     Parameters
     ----------
@@ -286,10 +286,10 @@ def tagKey(tagname: str) -> Tuple[int, ...]:
 
     Returns
     -------
-    sortKey : tuple[`int`, ...]
+    sortKey : tuple[`str`, ...]
         numerical key for sorting.
     """
-    return tuple(int(i) for i in tagname[2:].split("."))
+    return tuple(tagname[2:].split("."))
 
 
 def writeHtml(
