@@ -313,6 +313,14 @@ def writeHtml(
         writer.write("<body>\n")
         writer.write("<h1>PFS 2D DRP Changelog</h1>\n")
 
+        gen_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M +00:00")
+        repos = ", ".join(os.path.basename(r) for r in sorted(repositories))
+        writer.write(
+            f"<p>Generated at {hescape(gen_date)} "
+            "based on the following"
+            f" repositories: {hescape(repos)}.</p>\n"
+        )
+
         # Always do the not-in-tag tickets first if they exist.
         if NOT_TAGGED in changelog:
             writeTagSummary(writer, NOT_TAGGED, changelog.pop(NOT_TAGGED))
@@ -321,13 +329,6 @@ def writeHtml(
         for tag in sorted(changelog, reverse=True, key=tagKey):
             writeTagSummary(writer, tag, changelog[tag])
 
-        gen_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M +00:00")
-        repos = ", ".join(os.path.basename(r) for r in sorted(repositories))
-        writer.write(
-            f"<p>Generated at {hescape(gen_date)} "
-            "based on the following"
-            f" repositories: {hescape(repos)}.</p>\n"
-        )
         writer.write("</body>\n")
         writer.write("</html>\n")
 
