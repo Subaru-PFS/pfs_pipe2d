@@ -674,7 +674,7 @@ def getSourceFilterFromListOfFileId(ids: Iterable[FileId]) -> List[str]:
     """
     ids = list(ids)
     if not ids:
-        raise ValueError(f"Empty list of FileId cannot be expressed in --id format.")
+        raise ValueError("Empty list of FileId cannot be expressed in --id format.")
 
     visits = set(id.visit for id in ids)
     arms = set(id.arm for id in ids)
