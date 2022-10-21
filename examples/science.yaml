@@ -4,7 +4,7 @@
 scienceBlock:
   -
     name: brn
-    id: "visit=1000^1001^1004^1005"
+    id: ["visit=1000^1001^1004^1005", "arm=b^r"]
   -
     name: bmn
-    id: "visit=1002^1003^1006^1007"
+    id: ["visit=1002^1003^1006^1007", "arm=b^m"]
