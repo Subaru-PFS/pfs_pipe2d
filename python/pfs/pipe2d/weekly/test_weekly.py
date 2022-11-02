@@ -32,9 +32,6 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
         """Test that visit products exist"""
         for visit in self.visits:
             for arm in self.configuration:
-                # FIXME PIPE2D-1088 Ignore n-band data temporarily.
-                if arm == "n":
-                    continue
                 self.assertTrue(self.butler.datasetExists("pfsArm", visit=visit, arm=arm))
                 self.assertTrue(self.butler.datasetExists("pfsArmLsf", visit=visit, arm=arm))
             self.assertTrue(self.butler.datasetExists("pfsMerged", visit=visit))
@@ -94,9 +91,7 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
                 lsf = self.butler.get("pfsObjectLsf", dataId)
                 badMask = spectrum.flags.get("NO_DATA")
                 select = (spectrum.mask & badMask) == 0
-                # FIXME PIPE2D-1088 Ignoring n-band data reduces number of masked pixels.
-                # Tweak minFrac till NIR data re-introduced
-                minFrac = dict(brn=0.63, bmn=0.49)[self.configuration]
+                minFrac = dict(brn=0.75, bmn=0.70)[self.configuration]
                 self.assertGreater(select.sum(), minFrac*len(spectrum), "Too many masked pixels")
                 self.assertFalse(np.all(spectrum.sky[select] == 0))
                 self.assertTrue(np.all(spectrum.variance[select] > 0))
@@ -104,15 +99,13 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
 
 
 @classParameters(
-    arms=("br", "m"),  # FIXME PIPE2D-1088 Ignore n-band data temporarily.
+    arms=("brn", "m"),
     visit=(39, 40),
 )
 class ArcTestCase(lsst.utils.tests.TestCase):
     def setUp(self):
-        # Map arm group to a directory suffix
-        dirSuffix = dict(br="brn", m="m")[self.arms]
-        self.butler = Butler(os.path.join(weeklyRerun, "calib", dirSuffix,
-                                          f"arc_{dirSuffix}", "detectorMap"))
+        self.butler = Butler(os.path.join(weeklyRerun, "calib", self.arms,
+                                          f"arc_{self.arms}", "detectorMap"))
 
     def tearDown(self):
         del self.butler
