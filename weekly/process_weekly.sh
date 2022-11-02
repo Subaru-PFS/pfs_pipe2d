@@ -60,6 +60,7 @@ mkdir -p $WORKDIR
 mkdir -p $WORKDIR/CALIB
 echo "lsst.obs.pfs.PfsMapper" > $WORKDIR/_mapper
 ingestPfsImages.py $WORKDIR $DATADIR/PFFA*.fits
+ingestPfsImages.py $WORKDIR $DATADIR/PFFB*.fits
 
 # Ingest defects
 makePfsDefects --lam
