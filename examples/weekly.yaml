@@ -18,7 +18,7 @@ init:
 #
 calibBlock:
   -
-    name: calibs_for_brn
+    name: calibs_for_br
     bias:
       id: ["field=BIAS", "arm=b^r"]
     dark:
@@ -31,6 +31,9 @@ calibBlock:
           id: ["visit=35", "arm=b^r"]
         -
           id: ["visit=37", "arm=b^r"]
+  -
+    name: calibs_for_n
+    fiberProfiles:
       group:
         -
           id: ["visit=35", "arm=n"]
@@ -52,15 +55,17 @@ calibBlock:
           id: ["visit=36", "arm=m"]
         -
           id: ["visit=38", "arm=m"]
-
   -
-    name: arc_brn
+    name: arc_br
     detectorMap:
       id: ["visit=39..45:2", "arm=b^r"]
       config:
         - "fitDetectorMap.doSlitOffsets=True"
         - "reduceExposure.readLineList.exclusionRadius=0.3"
         - "fitDetectorMap.minSignalToNoise=20"
+  -
+    name: arc_n
+    detectorMap:
       id: ["visit=39..45:2", "arm=n"]
       config:
         - "fitDetectorMap.doSlitOffsets=True"
@@ -69,8 +74,6 @@ calibBlock:
         - "reduceExposure.isr.doBias=False"
         - "reduceExposure.isr.doDark=False"
         - "reduceExposure.isr.doFlat=False"
-
-
   -
     name: arc_m
     detectorMap:
@@ -79,14 +82,6 @@ calibBlock:
         - "fitDetectorMap.doSlitOffsets=True"
         - "reduceExposure.readLineList.exclusionRadius=0.3"
         - "fitDetectorMap.minSignalToNoise=20"
-      id: ["visit=40..46:2", "arm=n"]
-      config:
-        - "fitDetectorMap.doSlitOffsets=True"
-        - "reduceExposure.readLineList.exclusionRadius=0.3"
-        - "fitDetectorMap.minSignalToNoise=20"
-        - "reduceExposure.isr.doBias=False"
-        - "reduceExposure.isr.doDark=False"
-        - "reduceExposure.isr.doFlat=False"
 
 #
 # Blocks of science pipelines
@@ -94,7 +89,15 @@ calibBlock:
 scienceBlock:
   -
     name: pipeline_on_brn
-    id: ["visit=47^48^49^53^54^57", "arm=b^r^n"]
+    id: ["visit=47^48^49^53^54^57", "arm=b^r"]
+    id: ["visit=47^48^49^53^54^57", "arm=n"]
+    policy:
+        reduceExposure:
+            config: ["isr.doBias=False", "isr.doDark=False", "isr.doFlat=False"]
   -
     name: pipeline_on_bmn
-    id: ["visit=50^51^52^55^56^58", "arm=b^m^n"]
+    id: ["visit=50^51^52^55^56^58", "arm=b^m"]
+    id: ["visit=50^51^52^55^56^58", "arm=n"]
+    policy:
+        reduceExposure:
+            config: ["isr.doBias=False", "isr.doDark=False", "isr.doFlat=False"]

@@ -72,15 +72,25 @@ cleanFlag=""
 ( $DEVELOPER ) && develFlag="--devel"
 ( $CLEANUP ) && cleanFlag="--clean"
 
-# Calibs for brn
+# Calibs for br
 generateCommands.py $WORKDIR \
     $HERE/../examples/weekly.yaml \
-    $WORKDIR/calibs_for_brn.sh \
-    --rerun=$RERUN/calib/brn \
-    --init --blocks=calibs_for_brn \
+    $WORKDIR/calibs_for_br.sh \
+    --rerun=$RERUN/calib/br \
+    --init --blocks=calibs_for_br \
     -j $CORES $develFlag $cleanFlag
 
-sh $WORKDIR/calibs_for_brn.sh
+sh $WORKDIR/calibs_for_br.sh
+
+# Calibs for n
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/calibs_for_n.sh \
+    --rerun=$RERUN/calib/n \
+    --blocks=calibs_for_n \
+    -j $CORES $develFlag $cleanFlag
+
+sh $WORKDIR/calibs_for_n.sh
 
 # Calibs for m
 generateCommands.py $WORKDIR \
@@ -95,12 +105,21 @@ sh $WORKDIR/calibs_for_m.sh
 # Run calibs over again just with for the arcs: we want to preserve their outputs so we can test the results
 generateCommands.py $WORKDIR \
     $HERE/../examples/weekly.yaml \
-    $WORKDIR/arc_brn.sh \
-    --rerun=$RERUN/calib/brn \
-    --blocks=arc_brn \
+    $WORKDIR/arc_br.sh \
+    --rerun=$RERUN/calib/br \
+    --blocks=arc_br \
     -j $CORES $develFlag
 
-sh $WORKDIR/arc_brn.sh
+sh $WORKDIR/arc_br.sh
+
+generateCommands.py $WORKDIR \
+    $HERE/../examples/weekly.yaml \
+    $WORKDIR/arc_n.sh \
+    --rerun=$RERUN/calib/n \
+    --blocks=arc_n \
+    -j $CORES $develFlag
+
+sh $WORKDIR/arc_n.sh
 
 generateCommands.py $WORKDIR \
     $HERE/../examples/weekly.yaml \
