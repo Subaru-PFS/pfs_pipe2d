@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DATADIR="/projects/HSC/PFS/weekly-20210819"
+DATADIR="/projects/HSC/PFS/weekly-20221201"
 RERUN="weekly"
 CORES=10
 CLEANUP=true
@@ -59,7 +59,8 @@ set -evx
 mkdir -p $WORKDIR
 mkdir -p $WORKDIR/CALIB
 echo "lsst.obs.pfs.PfsMapper" > $WORKDIR/_mapper
-ingestPfsImages.py $WORKDIR $DATADIR/PFFA*.fits
+
+ingestPfsImages.py $WORKDIR $DATADIR/PFF[AB]*.fits
 
 # Ingest defects
 makePfsDefects --lam

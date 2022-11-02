@@ -20,17 +20,17 @@ calibBlock:
   -
     name: calibs_for_brn
     bias:
-      id: ["field=BIAS", "arm=b^r"]
+      id: ["field=BIAS", "arm=b^r^n"]
     dark:
-      id: ["field=DARK", "arm=b^r"]
+      id: ["field=DARK", "arm=b^r^n"]
     flat:
-      id: ["field=FLAT", "arm=b^r"]
+      id: ["field=FLAT", "arm=b^r^n"]
     fiberProfiles:
       group:
         -
-          id: ["visit=35", "arm=b^r"]
+          id: ["visit=35", "arm=b^r^n"]
         -
-          id: ["visit=37", "arm=b^r"]
+          id: ["visit=37", "arm=b^r^n"]
   -
     name: calibs_for_m
     fiberProfiles:
@@ -42,7 +42,7 @@ calibBlock:
   -
     name: arc_brn
     detectorMap:
-      id: ["visit=39..45:2", "arm=b^r"]
+      id: ["visit=39..45:2", "arm=b^r^n"]
       config:
         - "fitDetectorMap.doSlitOffsets=True"
         - "reduceExposure.readLineList.exclusionRadius=0.3"
@@ -62,7 +62,7 @@ calibBlock:
 scienceBlock:
   -
     name: pipeline_on_brn
-    id: ["visit=47^48^49^53^54^57", "arm=b^r"]
+    id: ["visit=47^48^49^53^54^57", "arm=b^r^n"]
   -
     name: pipeline_on_bmn
-    id: ["visit=50^51^52^55^56^58", "arm=b^m"]
+    id: ["visit=50^51^52^55^56^58", "arm=b^m^n"]
