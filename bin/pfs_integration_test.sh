@@ -146,7 +146,8 @@ if $RUN_GEN2; then
             $drp_stella_data/raw/PFFA*.fits \
             -c clobber=True register.ignore=True
 
-        ingestCuratedCalibs.py "$TARGET" --calib "$TARGET"/CALIB "$DRP_PFS_DATA_DIR"/curated/pfs/defects
+        mkdir $TARGET/stagingArea
+        ingestPfsDefects --lam $TARGET/stagingArea $TARGET --calib $TARGET/CALIB --config clobber=True
 
         # Build calibs
         generateCommands.py "$TARGET" \

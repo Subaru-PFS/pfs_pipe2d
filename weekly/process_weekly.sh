@@ -62,7 +62,8 @@ echo "lsst.obs.pfs.PfsMapper" > $WORKDIR/_mapper
 ingestPfsImages.py $WORKDIR $DATADIR/PFFA*.fits
 
 # Ingest defects
-ingestCuratedCalibs.py $WORKDIR --calib $WORKDIR/CALIB $DRP_PFS_DATA_DIR/curated/pfs/defects
+mkdir $WORKDIR/stagingArea
+ingestPfsDefects --lam $WORKDIR/stagingArea $WORKDIR --calib $WORKDIR/CALIB --config clobber=True
 
 # Build calibs
 develFlag=""
