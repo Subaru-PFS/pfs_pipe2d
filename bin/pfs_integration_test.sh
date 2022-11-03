@@ -146,8 +146,8 @@ if $RUN_GEN2; then
             $drp_stella_data/raw/PFFA*.fits \
             -c clobber=True register.ignore=True
 
-        mkdir $TARGET/stagingArea
-        ingestPfsDefects --lam $TARGET/stagingArea $TARGET --calib $TARGET/CALIB --config clobber=True
+        makePfsDefects --lam
+        ingestCuratedCalibs.py "$TARGET" --calib "$TARGET"/CALIB "$DRP_PFS_DATA_DIR"/curated/pfs/defects
 
         # Build calibs
         generateCommands.py "$TARGET" \
@@ -202,6 +202,7 @@ if $RUN_GEN3; then
     butler ingest-raws $DATASTORE $drp_stella_data/raw/PFFA*.fits --ingest-task lsst.obs.pfs.gen3.PfsRawIngestTask --transfer link --fail-fast
     ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig simulator $drp_stella_data/raw/pfsConfig*.fits --transfer link
     butler ingest-files $DATASTORE detectorMap_bootstrap PFS-F/detectorMap/bootstrap --prefix $DRP_PFS_DATA_DIR/detectorMap $DRP_PFS_DATA_DIR/detectorMap/detectorMap-sim.ecsv --transfer copy
+    makePfsDefects --lam
     butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
 
     # Calibs
