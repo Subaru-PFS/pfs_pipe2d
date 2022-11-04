@@ -62,6 +62,7 @@ echo "lsst.obs.pfs.PfsMapper" > $WORKDIR/_mapper
 ingestPfsImages.py $WORKDIR $DATADIR/PFFA*.fits
 
 # Ingest defects
+makePfsDefects --lam
 ingestCuratedCalibs.py $WORKDIR --calib $WORKDIR/CALIB $DRP_PFS_DATA_DIR/curated/pfs/defects
 
 # Build calibs
