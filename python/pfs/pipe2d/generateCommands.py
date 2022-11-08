@@ -181,6 +181,18 @@ class CommandConfig:
             commands += ["--config"] + self.configs
         return commands
 
+    def __and__(self, other: "CommandConfig") -> "CommandConfig":
+        """Conjunction of the two operands.
+
+        Parameters
+        ----------
+        other : `CommandConfig`
+            The other operand than ``self``.
+        """
+        configs = self.configs + other.configs
+        configfile = other.configfile or self.configfile
+        return type(self)(configs=configs, configfile=configfile)
+
 
 @export
 class SourceFilter:
@@ -255,6 +267,38 @@ class SourceFilter:
         else:
             commands = []
         return commands
+
+    def __and__(self, other: "SourceFilter") -> "SourceFilter":
+        """Conjunction of the two operands.
+
+        For example, ["field=f"] AND ["arm=b^r"] = ["field=f", "arm=b^r"];
+        ["field=f"] AND ["field=g"] = ["field=g"].
+        In the latter case, the rhs wins.
+
+        Rationale: combining filters of different dimensions is trivial,
+        but combining filters of the same dimension is not.
+        If, say, ["arm=b^r"] AND ["arm=b^n"] were ["arm=b"],
+        what would "field=f" AND "field=g" be?
+        Obviously, it would not be "field=f^g"
+        because this would be disjunction. (we want conjunction)
+
+        Therefore, this operator simply selects the rhs if a key is contained
+        in both operands. This operator does not even take conjunction
+        that looks obvious to humans: the result of ["arm=b^r"] AND ["arm=b^n"]
+        is not ["arm=b"] but ["arm=b^n"].
+
+        Parameters
+        ----------
+        other : `SourceFilter`
+            The other operand than ``self``.
+        """
+        # This dict will be {"key1": "key1=value", "key2": "key2=value", ...}
+        filters = {}
+        for f in self.id + other.id:
+            key = re.match(r"^[^=]*", f).group(0)
+            filters[key] = f
+
+        return type(self)(id=list(filters.values()))
 
 
 @export
@@ -1022,6 +1066,23 @@ class CalibBlock:
 
 
 @export
+@dataclasses.dataclass
+class ScienceStepSubgroup:
+    """Subgroup of ScienceStep.
+
+    Parameters
+    ----------
+    config : `CommandConfig`
+        Configuration for this subgroup.
+    source : `SourceFilter`
+        SourceFilter for this subgroup.
+    """
+
+    config: CommandConfig
+    source: SourceFilter
+
+
+@export
 class ScienceStep:
     """A step of analysis pipeline.
     The concrete command for the step is defined by subclasses.
@@ -1030,6 +1091,9 @@ class ScienceStep:
     ----------
     config : `CommandConfig`
         Configurations used in running this step.
+    groups : `List[ScienceStepSubgroup]`
+        Subgroups of sources.
+        If this is empty, all sources will be processed at a time.
 
     Notes
     -----
@@ -1047,13 +1111,14 @@ class ScienceStep:
         Name of the command that is actually called.
     """
 
-    __slots__ = ["config"]
+    __slots__ = ["config", "groups"]
 
     # This property may be replaced by __subclasses__() once it is documented.
     __subclasses: Dict[str, type] = {}
 
-    def __init__(self, config: CommandConfig):
+    def __init__(self, config: CommandConfig, groups: Iterable[ScienceStepSubgroup]):
         self.config = config
+        self.groups = list(groups)
 
     def __init_subclass__(cls, *, typeName: str, commandName: str, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -1074,6 +1139,18 @@ class ScienceStep:
                 A config string, or a list of config strings.
             ``"configfile"``
                 Path to a configuration file
+            ``"group"``
+                List of Mapping[str, Any]`.
+                If this key exists, the command is called iteratively
+                for each group described in its value.
+
+                ``"id"``
+                    A string like ``"arm=n"``,
+                    or a list of strings like ``["arm=n", "visit=1"]``
+                ``"config"``
+                    A config string, or a list of config strings.
+                ``"configfile"``
+                    Path to a configuration file
 
         Returns
         -------
@@ -1083,10 +1160,19 @@ class ScienceStep:
 
         config = CommandConfig.fromYaml(yamlBlock, remove=True)
 
+        groups: List[ScienceStepSubgroup] = []
+        for block in ensureInstance(yamlBlock.pop("group", []), list):
+            block = ensureInstance(block, dict)
+            config = CommandConfig.fromYaml(block, remove=True)
+            source = SourceFilter.fromYaml(block, remove=True)
+            if block:
+                raise RuntimeError(f'Invalid keys for {cls.__name__}["group"]: {list(block.keys())}')
+            groups.append(ScienceStepSubgroup(config=config, source=source))
+
         if yamlBlock:
             raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
 
-        return cls(config)
+        return cls(config, groups)
 
     @staticmethod
     def getSubclass(typeName: str) -> Type["ScienceStep"]:
@@ -1126,19 +1212,26 @@ class ScienceStep:
         devel : `bool`
             Run commands in the development mode (no versioning).
         """
-        command = [
-            self.commandName,
-            dataDir,
-            f"--calib={calib}",
-            f"--rerun={rerun}",
-            "--doraise",
-            f"-j{processes}"]
+        defaultGroup = ScienceStepSubgroup(
+            config=CommandConfig.fromYaml({}),
+            source=SourceFilter.fromYaml({}),
+        )
 
-        command += getDevelopmentOptions() if devel else []
-        command += source.getCommandLine()
-        command += self.config.getCommandLine()
+        groups = self.groups if self.groups else [defaultGroup]
+        for group in groups:
+            command = [
+                self.commandName,
+                dataDir,
+                f"--calib={calib}",
+                f"--rerun={rerun}",
+                "--doraise",
+                f"-j{processes}"]
 
-        print(f"{shellCommand(command)}", file=fout)
+            command += getDevelopmentOptions() if devel else []
+            command += (source & group.source).getCommandLine()
+            command += (self.config & group.config).getCommandLine()
+
+            print(f"{shellCommand(command)}", file=fout)
 
 
 @export
@@ -1245,6 +1338,18 @@ class ScienceBlock:
                     A config string, or a list of config strings.
                 ``"configfile"``
                     Path to a configuration file
+                ``"group"``
+                    List of Mapping[str, Any]`.
+                    If this key exists, the command is called iteratively
+                    for each group described in its value.
+
+                    ``"id"``
+                        A string like ``"arm=n"``,
+                        or a list of strings like ``["arm=n", "visit=1"]``
+                    ``"config"``
+                        A config string, or a list of config strings.
+                    ``"configfile"``
+                        Path to a configuration file
 
         Returns
         -------
