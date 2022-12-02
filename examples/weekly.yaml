@@ -19,10 +19,11 @@ init:
 calibBlock:
   -
     name: calibs_for_brn
+    # Do not generate biases or darks for n
     bias:
-      id: ["field=BIAS", "arm=b^r^n"]
+      id: ["field=BIAS", "arm=b^r"]
     dark:
-      id: ["field=DARK", "arm=b^r^n"]
+      id: ["field=DARK", "arm=b^r"]
     flat:
       id: ["field=FLAT", "arm=b^r^n"]
     fiberProfiles:
