@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DATADIR="/projects/HSC/PFS/scienceSims/scienceSims-20210908"
+DATADIR="/projects/HSC/PFS/scienceSims/scienceSims-20221201"
 RERUN="science"
 CORES=10
 DEVELOPER=false
@@ -58,7 +58,7 @@ develFlag=""
 set -evx
 
 # Ingest the science data
-ingestPfsImages.py $WORKDIR $DATADIR/PFFA*.fits
+ingestPfsImages.py $WORKDIR $DATADIR/PFF[AB]*.fits
 
 # Run the pipeline
 generateCommands.py $WORKDIR \
