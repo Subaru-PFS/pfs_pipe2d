@@ -16,9 +16,8 @@ usage() {
     # Display usage and quit
     echo "Create simulated science images" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-f FIBERS] [-j NUMCORES] [-n] [-d OBJ_SPECTRA_DIR]" 1>&2
+    echo "Usage: $0 [-j NUMCORES] [-n] [-d OBJ_SPECTRA_DIR] <PFS_DESIGN_ID_1> <PFS_DESIGN_ID_2>" 1>&2
     echo "" 1>&2
-    echo "    -f <FIBERS> : fibers to activate (all,lam,...)" 1>&2
     echo "    -j <NUMCORES> : number of cores to use" 1>&2
     echo "    -n : don't actually run the simulator" 1>&2
     echo "    -d OBJ_SPECTRA_DIR : location of object spectra" 1>&2
@@ -29,12 +28,8 @@ usage() {
 # Parse command-line arguments
 NUMCORES=1
 DRYRUN=false
-FIBERS=all
-while getopts "hf:j:d:n" opt; do
+while getopts "hj:d:n" opt; do
     case "${opt}" in
-        f)
-            FIBERS=${OPTARG}
-            ;;
         j)
             NUMCORES=${OPTARG}
             ;;
@@ -50,11 +45,13 @@ while getopts "hf:j:d:n" opt; do
     esac
 done
 shift $((OPTIND-1))
+PFS_DESIGN_ID_1=$1; shift
+PFS_DESIGN_ID_2=$1; shift
 
 # Check that $OBJECT_SPECTRA_DIR
 # is specified, the directory exists
 # and includes the YAML file.
-if [ -z "$OBJ_SPECTRA_DIR" ] || [ -n "$1" ]; then
+if [ -z "$OBJ_SPECTRA_DIR" ] || [ -n "$1" ] || [ -z "$PFS_DESIGN_ID_1" ] || [ -z "$PFS_DESIGN_ID_2" ]; then
     usage
 fi
 
@@ -89,6 +86,7 @@ get_visits() {
 get_filename() {
     local visit=$1
     local arm=$2
+    local category="A"
     case $arm in
         b)
             arm=1
@@ -101,11 +99,12 @@ get_filename() {
             ;;
         n)
             arm=3
+            category="B"
             ;;
         *)
             exit 1
     esac
-    echo $(printf "PFFA%06d1%1d.fits" $visit $arm)
+    echo $(printf "PFF%s%06d1%1d.fits" $category $visit $arm)
 }
 
 make_brn() {
@@ -142,9 +141,7 @@ make_brmn() {
 COUNTER=1000 # Keep visit namespace separate to that for core weekly data
 COMMANDS=()
 # Objects
-for pfsDesignId in 9 10; do
-    # create a symlink to the relevant pfsDesign file to that makeSim can access it
-    $( ( $DRYRUN ) && echo "echo " )ln -s $(printf "$OBJ_SPECTRA_DIR/pfsDesign/pfsDesign-0x%016x.fits" $pfsDesignId) .
+for pfsDesignId in "$PFS_DESIGN_ID_1" "$PFS_DESIGN_ID_2"; do
     make_brmn 2 --pfsDesignId $pfsDesignId --exptime 1800 --type object --objSpectraDir $OBJ_SPECTRA_DIR
 done
 IFS=$'\n' printf '%s\n' "${COMMANDS[@]}" | xargs -d $'\n' -n 1 -P $NUMCORES $( ( ! $DRYRUN ) && echo "--verbose") sh -c
