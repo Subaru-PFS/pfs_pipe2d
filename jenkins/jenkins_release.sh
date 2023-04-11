@@ -3,7 +3,7 @@
 # Configuration parameters
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/  # Parent directory of this script
 WORKDIR=/scratch/pprice/jenkins  # Working directory
-STACK=/tigress/HSC/PFS/stack/current  # Stack directory
+STACK=/scratch/gpfs/HSC/PFS/stack/current  # Stack directory
 DISTRIB=/tigress/HSC/PFS/distrib  # Distribution directory
 export SCONSFLAGS="-j 4"  # SCons build flags
 

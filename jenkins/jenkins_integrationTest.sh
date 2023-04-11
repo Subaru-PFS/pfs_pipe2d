@@ -7,7 +7,7 @@
 # The following environment variables are set by Jenkins for all runs:
 # BUILD_NUMBER: The current build number
 
-STACK_DIR=/tigress/HSC/PFS/stack/current
+STACK_DIR=/scratch/gpfs/HSC/PFS/stack/current
 WORKDIR=/scratch/pprice/jenkins/integrationTest/${BUILD_NUMBER}
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
