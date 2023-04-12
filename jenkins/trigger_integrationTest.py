@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import getpass
 import argparse
+import logging
 
 from pfs.pipe2d.jenkins.jenkins import triggerJenkins
 
@@ -9,15 +10,25 @@ JENKINS_URL = "https://jenkins.princeton.edu/job/Sumire/job/Prime%20Focus%20Spec
 JENKINS_TOKEN = "integrationTest"
 
 
-def run(tag, branch="master"):
+def run(commit):
     """Run the integration test with Jenkins
     Parameters
     ----------
-    branch : `str`, optional
-        Branch to test.
+    commit : `str`, optional
+        Branch/tag commit to test.
     """
-    response = triggerJenkins(JENKINS_URL, JENKINS_TOKEN, BRANCH=tag, USERNAME=getpass.getuser())
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
+
+    response = triggerJenkins(JENKINS_URL, JENKINS_TOKEN, BRANCH=commit, USERNAME=getpass.getuser())
     print("Triggered integration test.", response.text)
+    print(response.request.url)
+    print(response.request.headers)
+    print(response.request.data)
 
 
 def main():
