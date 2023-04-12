@@ -43,11 +43,10 @@ class UserDatabase:
         """
         self = cls()
         self.add("pprice", "Paul Price", "PaulPrice", "U3A1VCXQT", "price@astro.princeton.edu")
-        self.add("hassans", "Hassan Siddiqui", "hassanxp", "UA82J1WP3", "hassans@astro.princeton.edu")
-        self.add("ncaplar", "Neven Caplar", "nevencaplar", "U6YEJEW8L", "ncaplar@princeton.edu")
         self.add("rhl", "Robert Lupton the Good", "RobertLuptonTheGood", "U39GV64AU",
                  "rhl@astro.princeton.edu")
         self.add("craigl", "Craig Loomis", "craigl", "U3A2P4FEH", "cloomis@astro.princeton.edu")
+        self.add("afur", "Arnaud Le Fur", "alefur", "U3MLJRWQK", "afur@astro.princeton.edu")
         return self
 
     def add(self, userName, name, gitHub, slack, email):
