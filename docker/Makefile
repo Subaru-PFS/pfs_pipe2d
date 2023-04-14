@@ -40,7 +40,7 @@ test: pipe2d
 sim2d: Dockerfile.sim2d
 	docker build -t paprice/pfs_sim2d:$(TAG) -f Dockerfile.sim2d --build-arg VERSION=$(TAG) --build-arg BRANCH=$(PFS_BRANCH) .
 
-all:	lsst pipe2d pipe2d_debug sim2d
+all:	lsst pipe2d pipe2d_debug
 bin:	bin/install_lsst.sh bin/build_pfs.sh bin/install_pfs.sh
 .PHONY: lsst pipe2d pipe2d_debug sim2d all bin test bin/install_lsst.sh bin/build_pfs.sh bin/install_pfs.sh
 .NOTPARALLEL:

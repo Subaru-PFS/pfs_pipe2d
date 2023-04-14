@@ -17,7 +17,7 @@ RUN yum install -y libXft gdb valgrind libatomic libunwind libunwind-devel cmake
 
 USER pfs
 RUN . /opt/pfs/loadLSST.bash \
- && mamba install -y libtool autoconf automake
+ && mamba install -y --no-update-deps libtool autoconf automake
 
 RUN cd /opt/pfs \
  && . /opt/pfs/loadLSST.bash \
