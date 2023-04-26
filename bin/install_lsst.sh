@@ -46,8 +46,8 @@ install_lsst () {
  		else
  			args+=("rubin-env=${ref}")
  		fi
-+		args+=("mkl" "jupyter" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22" "cryptography=37.0.4")
- 
++		args+=("mkl" "jupyter" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22" "cryptography=37.0.4" "matplotlib=3.6" "astrowidgets")
+
  		$cmd mamba "${args[@]}"
 EOF
 
@@ -72,6 +72,7 @@ EOF
 BRANCH=
 LIMITED=false
 LSST_VERSION=w.2022.17
+# On next upgrade, add display_astrowidgets to PACKAGES
 PACKAGES="pipe_drivers display_ds9 display_matplotlib ctrl_mpexec cp_pipe"
 FROM_SOURCE=false
 while getopts ":e:hL:p:S" opt; do
