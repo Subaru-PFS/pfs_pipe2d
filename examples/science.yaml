@@ -5,6 +5,14 @@ scienceBlock:
   -
     name: brn
     id: ["visit=1000^1001^1004^1005", "arm=b^r^n"]
+    policy:
+      reduceExposure:
+        config:
+          - "isr.doCrosstalk=False"  # No crosstalk in simulated data
   -
     name: bmn
     id: ["visit=1002^1003^1006^1007", "arm=b^m^n"]
+    policy:
+      reduceExposure:
+        config:
+          - "isr.doCrosstalk=False"  # No crosstalk in simulated data

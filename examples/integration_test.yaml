@@ -17,18 +17,30 @@ calibBlock:
     name: test_calib
     bias:
       id: "field=BIAS"
+      config:
+        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     dark:
       id: "field=DARK"
+      config:
+        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     flat:
       id: "field=FLAT"
+      config:
+        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     fiberProfiles:
       group:
         -
           id: "field=FLAT_ODD"
+          config:
+            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
         -
           id: "field=FLAT_EVEN"
+          config:
+            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     detectorMap:
       id: "field=ARC"
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
 
 #
 # Blocks of science pipelines
@@ -37,3 +49,7 @@ scienceBlock:
   -
     name: test_science
     id: "field=OBJECT"
+    policy:
+      reduceExposure:
+        config:
+          - "isr.doCrosstalk=False"  # No crosstalk in simulated data

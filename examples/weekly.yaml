@@ -22,24 +22,39 @@ calibBlock:
     # Do not generate biases or darks for n
     bias:
       id: ["field=BIAS", "arm=b^r"]
+      config:
+        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     dark:
       id: ["field=DARK", "arm=b^r"]
+      config:
+        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     flat:
       id: ["field=FLAT", "arm=b^r^n"]
+      config:
+        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     fiberProfiles:
       group:
         -
           id: ["visit=35", "arm=b^r^n"]
+          config:
+            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
         -
           id: ["visit=37", "arm=b^r^n"]
+          config:
+            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
   -
     name: calibs_for_m
     fiberProfiles:
       group:
         -
           id: ["visit=36", "arm=m"]
+          config:
+            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
         -
           id: ["visit=38", "arm=m"]
+          config:
+            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+
   -
     name: arc_brn
     detectorMap:
@@ -47,6 +62,7 @@ calibBlock:
       config:
         - "fitDetectorMap.doSlitOffsets=True"
         - "fitDetectorMap.minSignalToNoise=20"
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
   -
     name: arc_m
     detectorMap:
@@ -54,6 +70,7 @@ calibBlock:
       config:
         - "fitDetectorMap.doSlitOffsets=True"
         - "fitDetectorMap.minSignalToNoise=20"
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
 
 #
 # Blocks of science pipelines
@@ -62,6 +79,14 @@ scienceBlock:
   -
     name: pipeline_on_brn
     id: ["visit=47^48^49^53^54^57", "arm=b^r^n"]
+    policy:
+      reduceExposure:
+        config:
+          - "isr.doCrosstalk=False"  # No crosstalk in simulated data
   -
     name: pipeline_on_bmn
     id: ["visit=50^51^52^55^56^58", "arm=b^m^n"]
+    policy:
+      reduceExposure:
+        config:
+          - "isr.doCrosstalk=False"  # No crosstalk in simulated data
