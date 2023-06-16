@@ -83,6 +83,8 @@ if [ -z "$PREFIX" ] || [ -n "$2" ]; then
     usage
 fi
 
+eups list -s fluxmodeldata || ( echo "fluxmodeldata package is not setup" && exit 1 )
+
 set -evx
 
 mkdir -p $PREFIX

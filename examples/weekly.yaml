@@ -25,7 +25,7 @@ calibBlock:
       config:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     dark:
-      id: ["field=DARK", "arm=b^r"]
+      id: ["field=DARK", "arm=b^r^n"]
       config:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     flat:

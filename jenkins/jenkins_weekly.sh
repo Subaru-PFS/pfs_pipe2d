@@ -93,6 +93,7 @@ $HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # C
 $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
+setup -k fluxmodeldata
 
 # Run the weekly production test
 state="test"
