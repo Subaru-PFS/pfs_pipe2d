@@ -83,6 +83,8 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+          - "repair.interp.modelPsf.defaultFwhm=1.5"
+          - "repair.cosmicray.cond3_fac=10"
   -
     name: pipeline_on_bmn
     id: ["visit=50^51^52^55^56^58", "arm=b^m^n"]
@@ -90,3 +92,5 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+          - "repair.interp.modelPsf.defaultFwhm=1.5"
+          - "repair.cosmicray.cond3_fac=10"
