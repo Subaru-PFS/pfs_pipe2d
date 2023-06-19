@@ -14,6 +14,7 @@ fi
 
 LOG_NAME=weekly_${TAG}
 LOG_FILE=$WORKDIR/${LOG_NAME}.log
+mkdir -p $WORKDIR
 
 state="setup"
 notify_on_exit () {
