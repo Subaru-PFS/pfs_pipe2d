@@ -42,7 +42,16 @@ install_lsst () {
     patch -p0 <<EOF
 --- newinstall.sh	2022-02-17 18:12:04.000000000 -0500
 +++ newinstall.sh	2022-02-17 18:12:17.000000000 -0500
-@@ -529,6 +529,7 @@
+@@ -506,6 +506,8 @@
+ 	(
+ 		set -Eeo pipefail
+
++        conda update -n base -c defaults conda
++
+ 		# install mamba to speed up environment creation
+ 		$cmd conda install -c conda-forge -y mamba
+
+@@ -529,6 +531,7 @@
  		else
  			args+=("rubin-env=${ref}")
  		fi

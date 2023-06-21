@@ -23,7 +23,7 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
     def setUp(self):
         self.butler = Butler(os.path.join(weeklyRerun, "pipeline", self.configuration, "pipeline"))
         self.visits = dict(brn=getBrnVisits, bmn=getBmnVisits)[self.configuration]()
-        self.design = PfsDesign.read(1, weeklyRaw)
+        self.design = PfsDesign.read(1, weeklyRaw).select(spectrograph=1)
 
     def tearDown(self):
         del self.butler
@@ -36,7 +36,7 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
                 self.assertTrue(self.butler.datasetExists("pfsArmLsf", visit=visit, arm=arm))
             self.assertTrue(self.butler.datasetExists("pfsMerged", visit=visit))
             self.assertTrue(self.butler.datasetExists("pfsMergedLsf", visit=visit))
-            config = self.butler.get("pfsConfig", visit=visit)
+            config = self.butler.get("pfsConfig", visit=visit).select(spectrograph=1)
             for target in config:
                 if target.catId == -1:
                     # Not a real target that we've processed
@@ -59,7 +59,7 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
     def testSpectra(self):
         """Test that spectra files can be read, and they are reasonable"""
         for visit in self.visits:
-            config = self.butler.get("pfsConfig", visit=visit)
+            config = self.butler.get("pfsConfig", visit=visit).select(spectrograph=1)
             spectra = self.butler.get("pfsMerged", visit=visit)
             lsf = self.butler.get("pfsMergedLsf", visit=visit)
             badMask = spectra.flags.get("NO_DATA", "BAD_FLAT", "INTRP")
