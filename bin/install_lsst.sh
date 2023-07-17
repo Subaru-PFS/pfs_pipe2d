@@ -46,7 +46,7 @@ install_lsst () {
  	(
  		set -Eeo pipefail
 
-+        conda update -n base -c defaults conda
++        conda update -n base -c conda-forge -y conda
 +
  		# install mamba to speed up environment creation
  		$cmd conda install -c conda-forge -y mamba
