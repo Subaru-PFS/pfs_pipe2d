@@ -46,7 +46,7 @@ install_lsst () {
  	(
  		set -Eeo pipefail
 
-+        conda update -n base -c defaults conda
++        conda update -n base -c conda-forge -y conda
 +
  		# install mamba to speed up environment creation
  		$cmd conda install -c conda-forge -y mamba
@@ -55,7 +55,7 @@ install_lsst () {
  		else
  			args+=("rubin-env=${ref}")
  		fi
-+		args+=("mkl" "jupyter" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22" "cryptography=37.0.4" "matplotlib=3.6" "pydantic=1.10.10" "astrowidgets")
++		args+=("mkl" "jupyter" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22" "cryptography=37.0.4" "matplotlib=3.6" "pydantic=1.10.10" "astrowidgets" "pybind11=2.10.4")
 
  		$cmd mamba "${args[@]}"
 EOF
