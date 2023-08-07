@@ -9,6 +9,7 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+          - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
   -
@@ -18,5 +19,6 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+          - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
