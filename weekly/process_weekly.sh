@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DATADIR="/projects/HSC/PFS/weekly-20230615"
+DATADIR="/projects/HSC/PFS/weekly/weekly-20230808"
 RERUN="weekly"
 CORES=10
 CLEANUP=true
