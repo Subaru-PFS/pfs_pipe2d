@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DATADIR="/projects/HSC/PFS/scienceSims/scienceSims-20230615"
+DATADIR="/projects/HSC/PFS/scienceSims/scienceSims-20230808"
 RERUN="science"
 CORES=10
 DEVELOPER=false

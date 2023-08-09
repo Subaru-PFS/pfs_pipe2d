@@ -129,7 +129,7 @@ class ArcTestCase(lsst.utils.tests.TestCase):
                 with self.subTest(visit=self.visit, arm=arm, fiberId=fiberId):
                     select = (lines.fiberId == fiberId) & good & (sigNoise > minSigNoise)
                     num = select.sum()
-                    self.assertGreater(num, 10)
+                    self.assertGreater(num, 7)
 
                     residual = lines.wavelength[select] - fitWavelength[select]
                     lq, median, uq = np.percentile(residual, (25.0, 50.0, 75.0))

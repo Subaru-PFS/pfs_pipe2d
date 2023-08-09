@@ -24,24 +24,29 @@ calibBlock:
       id: ["field=BIAS", "arm=b^r"]
       config:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "isr.doIPC=False"  # No IPC in simulated data
     dark:
       id: ["field=DARK", "arm=b^r^n"]
       config:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "isr.doIPC=False"  # No IPC in simulated data
     flat:
       id: ["field=FLAT", "arm=b^r^n"]
       config:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "isr.doIPC=False"  # No IPC in simulated data
     fiberProfiles:
       group:
         -
           id: ["visit=35", "arm=b^r^n"]
           config:
             - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+            - "isr.doIPC=False"  # No IPC in simulated data
         -
           id: ["visit=37", "arm=b^r^n"]
           config:
             - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+            - "isr.doIPC=False"  # No IPC in simulated data
   -
     name: calibs_for_m
     fiberProfiles:
@@ -50,10 +55,12 @@ calibBlock:
           id: ["visit=36", "arm=m"]
           config:
             - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+            - "isr.doIPC=False"  # No IPC in simulated data
         -
           id: ["visit=38", "arm=m"]
           config:
             - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+            - "isr.doIPC=False"  # No IPC in simulated data
 
   -
     name: arc_brn
@@ -63,6 +70,7 @@ calibBlock:
         - "fitDetectorMap.doSlitOffsets=True"
         - "fitDetectorMap.minSignalToNoise=20"
         - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
   -
     name: arc_m
     detectorMap:
@@ -71,6 +79,7 @@ calibBlock:
         - "fitDetectorMap.doSlitOffsets=True"
         - "fitDetectorMap.minSignalToNoise=20"
         - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
 
 #
 # Blocks of science pipelines
@@ -83,6 +92,7 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+          - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
   -
@@ -92,5 +102,6 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+          - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
