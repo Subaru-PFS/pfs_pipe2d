@@ -371,7 +371,14 @@ class InitSource:
 
         return cls(dirName, detectorMapFmt, arms)
 
-    def execute(self, logger: lsst.log.Log, fout: TextIO, dataDir: str, calib: str):
+    def execute(
+        self,
+        logger: lsst.log.Log,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to ingest this source.
 
         Parameters
@@ -384,6 +391,8 @@ class InitSource:
             Root of data repository.
         calib : `str`
             Name of output calibration directory.
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         initDir = os.path.join(dataDir, os.path.expandvars(self.dirName))
         logger.info("Reading init files from '%s'", initDir)
@@ -400,11 +409,14 @@ class InitSource:
             f"--output={calib}",
             f"--validity={DEFAULT_CALIB_VALIDITY}",
             "--create",
-            "--doraise",
+            "--longlog=1",
             "--mode=copy",
-            "--",
         ]
 
+        if not allowErrors:
+            command += ["--doraise"]
+
+        command += ["--"]
         command += detectorMaps
 
         print(f"{shellCommand(command)}", file=fout)
@@ -516,6 +528,7 @@ class CalibSource:
         *,
         processes: int = 1,
         devel: bool = False,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands to construct this calib from its source.
 
@@ -533,16 +546,21 @@ class CalibSource:
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             self.commandName,
             dataDir,
             f"--calib={calib}",
             f"--rerun={rerun}",
-            "--doraise",
+            "--longlog=1",
             "--batch-type=smp",
             f"--cores={processes}",
         ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         command += getDevelopmentOptions() if devel else []
         command += self.source.getCommandLine()
@@ -559,6 +577,7 @@ class CalibSource:
         copyMode: str,
         *,
         overwrite: bool,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands to ingest this calib.
 
@@ -577,15 +596,20 @@ class CalibSource:
         overwrite : `bool`
             Overwrite old calibs on ingestion.
             This argument is ignored if ``self.doOverwrite`` is True.
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             "ingestPfsCalibs.py",
             dataDir,
             f"--output={calib}",
             f"--validity={self.validity}",
-            "--doraise",
+            "--longlog=1",
             f"--mode={copyMode}",
         ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         if overwrite or self.doOverwrite:
             command += ["--config", "clobber=True"]
@@ -758,6 +782,7 @@ class BootstrapSource(
         *,
         processes: int = 1,
         devel: bool = False,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands to construct this calib from its source.
 
@@ -775,6 +800,8 @@ class BootstrapSource(
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         for g in self.groups:
             command = [
@@ -782,9 +809,12 @@ class BootstrapSource(
                 dataDir,
                 f"--calib={calib}",
                 f"--rerun={rerun}",
-                "--doraise",
+                "--longlog=1",
                 f"-j{processes}",
             ]
+
+            if not allowErrors:
+                command += ["--doraise"]
 
             command += getDevelopmentOptions() if devel else []
             command += g.flatSource.getCommandLine(key="flatId")
@@ -918,6 +948,7 @@ class FiberProfilesSource(
         *,
         processes: int = 1,
         devel: bool = False,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands to construct this calib from its source.
 
@@ -935,9 +966,19 @@ class FiberProfilesSource(
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         for g in self.groups:
-            g.execute(fout, dataDir, calib, rerun, processes=processes, devel=devel)
+            g.execute(
+                fout,
+                dataDir,
+                calib,
+                rerun,
+                processes=processes,
+                devel=devel,
+                allowErrors=allowErrors,
+            )
 
         fiberProfilesDir = os.path.join(dataDir, "rerun", rerun, "FIBERPROFILES")
         print(f"mkdir {shlex.quote(fiberProfilesDir)}/COMBINED", file=fout)
@@ -980,6 +1021,7 @@ class DetectorMapSource(
         *,
         processes: int = 1,
         devel: bool = False,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands to construct this calib from its source.
 
@@ -997,15 +1039,20 @@ class DetectorMapSource(
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             self.commandName,
             dataDir,
             f"--calib={calib}",
             f"--rerun={rerun}",
-            "--doraise",
+            "--longlog=1",
             f"-j{processes}",
         ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         command += getDevelopmentOptions() if devel else []
         command += self.source.getCommandLine()
@@ -1103,6 +1150,7 @@ class CalibBlock:
         clean: bool = False,
         devel: bool = False,
         overwrite: bool = False,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands to construct and ingest calibs.
 
@@ -1131,6 +1179,8 @@ class CalibBlock:
             Run commands in the development mode (no versioning).
         overwrite : `bool`
             Overwrite old calibs on ingestion.
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         calibTypes = set(calibTypes)
         if calibTypes:
@@ -1151,6 +1201,7 @@ class CalibBlock:
                     f"{rerun}/{self.name}/{typeName}",
                     processes=processes,
                     devel=devel,
+                    allowErrors=allowErrors,
                 )
                 self.sources[typeName].ingest(
                     fout,
@@ -1261,6 +1312,7 @@ class ScienceStep:
         *,
         processes: int = 1,
         devel: bool = False,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands for this step.
 
@@ -1280,15 +1332,20 @@ class ScienceStep:
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             self.commandName,
             dataDir,
             f"--calib={calib}",
             f"--rerun={rerun}",
-            "--doraise",
+            "--longlog=1",
             f"-j{processes}",
         ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         command += getDevelopmentOptions() if devel else []
         command += source.getCommandLine()
@@ -1451,6 +1508,7 @@ class ScienceBlock:
         *,
         processes: int = 1,
         devel: bool = False,
+        allowErrors: bool = False,
     ):
         """Put to ``fout`` commands to execute this block.
 
@@ -1473,6 +1531,8 @@ class ScienceBlock:
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         steps = set(steps)
         if steps:
@@ -1492,6 +1552,7 @@ class ScienceBlock:
                 f"{rerun}/pipeline",
                 processes=processes,
                 devel=devel,
+                allowErrors=allowErrors,
             )
 
 
@@ -1842,7 +1903,7 @@ def generateCommands(
         if init:
             if initSource is None:
                 raise RuntimeError("No 'init' block to execute")
-            initSource.execute(logger, fout, dataDir, calib)
+            initSource.execute(logger, fout, dataDir, calib, allowErrors=allowErrors)
 
         for blockName in blocks:
             if blockName in calibBlocks:
@@ -1858,6 +1919,7 @@ def generateCommands(
                     clean=clean,
                     devel=devel,
                     overwrite=overwriteCalib,
+                    allowErrors=allowErrors,
                 )
 
         for blockName in blocks:
@@ -1871,6 +1933,7 @@ def generateCommands(
                     steps=scienceSteps,
                     processes=processes,
                     devel=devel,
+                    allowErrors=allowErrors,
                 )
 
         logger.info(
