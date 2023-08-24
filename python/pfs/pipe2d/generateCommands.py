@@ -38,12 +38,23 @@ import stat
 
 import yaml
 
-from typing import Any, Collection, Dict, Iterable, List, Mapping, Optional, TextIO, Tuple, Type, Union
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    TextIO,
+    Tuple,
+    Type,
+    Union,
+)
 
 
 def export(obj):
-    """Decorator to add obj to __all__.
-    """
+    """Decorator to add obj to __all__."""
     __all__.append(obj.__name__)
     return obj
 
@@ -55,40 +66,83 @@ DEFAULT_CALIB_VALIDITY = 1800
 
 @export
 def main():
-    """Parse ``sys.argv`` and call ``generateCommands()``.
-    """
-    parser = argparse.ArgumentParser(description="""
+    """Parse ``sys.argv`` and call ``generateCommands()``."""
+    parser = argparse.ArgumentParser(
+        description="""
     Process a yaml file and generate shell commands.
-    """)
+    """
+    )
 
     parser.add_argument("dataDir", type=str, help="Root of data repository")
     parser.add_argument("specFile", type=str, help="Name of file specifying the work")
     parser.add_argument("output", type=str, help="Path to output file (shell script)")
     parser.add_argument("--init", action="store_true", help="Install initial calibs")
     parser.add_argument("--blocks", type=str, nargs="+", help="Blocks to execute")
-    parser.add_argument("--calib", type=str,
-                        help="Name of output calibration directory (default: dataDir/CALIB")
-    parser.add_argument("--calibTypes", type=str, nargs="+", default=[], choices=CalibBlock.calibTypes,
-                        help="Types of calibs to process")
-    parser.add_argument("--clean", action="store_true",
-                        help="Clean up byproducts after ingesting calibs")
-    parser.add_argument("--copyMode", choices=["move", "copy", "link", "skip"], default="copy",
-                        help="How to move files into calibration directory")
-    parser.add_argument("--devel", action="store_true",
-                        help="Run commands in the development mode (no versioning)")
-    parser.add_argument("--force", action="store_true",
-                        help="Continue in the face of problems")
-    parser.add_argument("-j", "--processes", type=int, default=1, help="Number of processes to use")
-    parser.add_argument("-L", "--loglevel", type=str, choices=list(LogLevel.__members__), default="INFO",
-                        help="How chatty should I be?")
-    parser.add_argument("--overwriteCalib", action="store_true",
-                        help="Overwrite old calibs on ingestion")
-    parser.add_argument("--rerun", type=str, default="noname",
-                        help="Name of rerun to use")
-    parser.add_argument("--scienceSteps", type=str, nargs="+", default=[], choices=ScienceBlock.steps,
-                        help="pipeline steps to execute")
-    parser.add_argument("--allowErrors", default=False, action="store_true",
-                        help="Allow processing errors to be non-fatal?")
+    parser.add_argument(
+        "--calib",
+        type=str,
+        help="Name of output calibration directory (default: dataDir/CALIB",
+    )
+    parser.add_argument(
+        "--calibTypes",
+        type=str,
+        nargs="+",
+        default=[],
+        choices=CalibBlock.calibTypes,
+        help="Types of calibs to process",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clean up byproducts after ingesting calibs",
+    )
+    parser.add_argument(
+        "--copyMode",
+        choices=["move", "copy", "link", "skip"],
+        default="copy",
+        help="How to move files into calibration directory",
+    )
+    parser.add_argument(
+        "--devel",
+        action="store_true",
+        help="Run commands in the development mode (no versioning)",
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Continue in the face of problems"
+    )
+    parser.add_argument(
+        "-j", "--processes", type=int, default=1, help="Number of processes to use"
+    )
+    parser.add_argument(
+        "-L",
+        "--loglevel",
+        type=str,
+        choices=list(LogLevel.__members__),
+        default="INFO",
+        help="How chatty should I be?",
+    )
+    parser.add_argument(
+        "--overwriteCalib",
+        action="store_true",
+        help="Overwrite old calibs on ingestion",
+    )
+    parser.add_argument(
+        "--rerun", type=str, default="noname", help="Name of rerun to use"
+    )
+    parser.add_argument(
+        "--scienceSteps",
+        type=str,
+        nargs="+",
+        default=[],
+        choices=ScienceBlock.steps,
+        help="pipeline steps to execute",
+    )
+    parser.add_argument(
+        "--allowErrors",
+        default=False,
+        action="store_true",
+        help="Allow processing errors to be non-fatal?",
+    )
 
     args = parser.parse_args()
     logger = lsst.log.getLogger("")
@@ -99,8 +153,7 @@ def main():
 
 
 class LogLevel(enum.IntEnum):
-    """Possible arguments of ``lsst.log.setLevel()``.
-    """
+    """Possible arguments of ``lsst.log.setLevel()``."""
 
     TRACE = lsst.log.TRACE
     DEBUG = lsst.log.DEBUG
@@ -125,12 +178,16 @@ class CommandConfig:
 
     __slots__ = ["configs", "configfile"]
 
-    def __init__(self, *, configs: Iterable[str] = [], configfile: Optional[str] = None):
+    def __init__(
+        self, *, configs: Iterable[str] = [], configfile: Optional[str] = None
+    ):
         self.configs = list(configs)
         self.configfile = configfile
 
     @classmethod
-    def fromYaml(cls, yamlBlock: Mapping[str, Any], *, remove: bool = False) -> "CommandConfig":
+    def fromYaml(
+        cls, yamlBlock: Mapping[str, Any], *, remove: bool = False
+    ) -> "CommandConfig":
         """Extract "config: ..." from ``yamlBlock``.
 
         Parameters
@@ -156,7 +213,9 @@ class CommandConfig:
         if isinstance(configs, str):
             configs = [configs]
         if not isinstance(configs, list):
-            raise RuntimeError(f"'config' must be a string or a list of string: ({configs})")
+            raise RuntimeError(
+                f"'config' must be a string or a list of string: ({configs})"
+            )
 
         configs = [ensureKeyEqValue(str(x)) for x in configs]
 
@@ -203,8 +262,8 @@ class SourceFilter:
 
     @classmethod
     def fromYaml(
-            cls, yamlBlock: Mapping[str, Any],
-            *, key: str = "id", remove: bool = False) -> "SourceFilter":
+        cls, yamlBlock: Mapping[str, Any], *, key: str = "id", remove: bool = False
+    ) -> "SourceFilter":
         """Extract "id:..." from ``yamlBlock``.
 
         Parameters
@@ -306,11 +365,20 @@ class InitSource:
         arms = yamlBlock.pop("arms")
 
         if yamlBlock:
-            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+            raise RuntimeError(
+                f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
+            )
 
         return cls(dirName, detectorMapFmt, arms)
 
-    def execute(self, logger: lsst.log.Log, fout: TextIO, dataDir: str, calib: str):
+    def execute(
+        self,
+        logger: lsst.log.Log,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to ingest this source.
 
         Parameters
@@ -323,13 +391,17 @@ class InitSource:
             Root of data repository.
         calib : `str`
             Name of output calibration directory.
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         initDir = os.path.join(dataDir, os.path.expandvars(self.dirName))
         logger.info("Reading init files from '%s'", initDir)
 
         detectorMaps = []
         for arm in self.arms:
-            detectorMaps.append(os.path.join(initDir, self.detectorMapFmt.format(arm=arm)))
+            detectorMaps.append(
+                os.path.join(initDir, self.detectorMapFmt.format(arm=arm))
+            )
 
         command = [
             "ingestPfsCalibs.py",
@@ -337,10 +409,14 @@ class InitSource:
             f"--output={calib}",
             f"--validity={DEFAULT_CALIB_VALIDITY}",
             "--create",
-            "--doraise",
+            "--longlog=1",
             "--mode=copy",
-            "--"]
+        ]
 
+        if not allowErrors:
+            command += ["--doraise"]
+
+        command += ["--"]
         command += detectorMaps
 
         print(f"{shellCommand(command)}", file=fout)
@@ -421,7 +497,9 @@ class CalibSource:
         validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
 
         if yamlBlock:
-            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+            raise RuntimeError(
+                f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
+            )
 
         return cls(config, source, validity)
 
@@ -442,8 +520,16 @@ class CalibSource:
         return CalibSource.__subclasses[typeName]
 
     def execute(
-            self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            *, processes: int = 1, devel: bool = False):
+        self,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        *,
+        processes: int = 1,
+        devel: bool = False,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -460,14 +546,21 @@ class CalibSource:
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             self.commandName,
             dataDir,
             f"--calib={calib}",
             f"--rerun={rerun}",
-            "--doraise",
-            "--batch-type=smp", f"--cores={processes}"]
+            "--longlog=1",
+            "--batch-type=smp",
+            f"--cores={processes}",
+        ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         command += getDevelopmentOptions() if devel else []
         command += self.source.getCommandLine()
@@ -476,8 +569,16 @@ class CalibSource:
         print(f"{shellCommand(command)}", file=fout)
 
     def ingest(
-            self, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str,
-            *, overwrite: bool):
+        self,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        copyMode: str,
+        *,
+        overwrite: bool,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to ingest this calib.
 
         Parameters
@@ -495,18 +596,23 @@ class CalibSource:
         overwrite : `bool`
             Overwrite old calibs on ingestion.
             This argument is ignored if ``self.doOverwrite`` is True.
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             "ingestPfsCalibs.py",
             dataDir,
             f"--output={calib}",
             f"--validity={self.validity}",
-            "--doraise",
-            f"--mode={copyMode}"]
+            "--longlog=1",
+            f"--mode={copyMode}",
+        ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         if overwrite or self.doOverwrite:
-            command += [
-                "--config", "clobber=True"]
+            command += ["--config", "clobber=True"]
 
         filedir = os.path.join(dataDir, "rerun", rerun, self.outputSubdir)
 
@@ -546,23 +652,17 @@ class CalibSource:
 
 
 @export
-class BiasSource(
-        CalibSource,
-        typeName="bias", commandName="constructPfsBias.py"):
+class BiasSource(CalibSource, typeName="bias", commandName="constructPfsBias.py"):
     pass
 
 
 @export
-class DarkSource(
-        CalibSource,
-        typeName="dark", commandName="constructPfsDark.py"):
+class DarkSource(CalibSource, typeName="dark", commandName="constructPfsDark.py"):
     pass
 
 
 @export
-class FlatSource(
-        CalibSource,
-        typeName="flat", commandName="constructFiberFlat.py"):
+class FlatSource(CalibSource, typeName="flat", commandName="constructFiberFlat.py"):
     pass
 
 
@@ -589,8 +689,8 @@ class BootstrapSourceSubgroup:
 
 @export
 class BootstrapSource(
-        CalibSource,
-        typeName="bootstrap", commandName="bootstrapDetectorMap.py"):
+    CalibSource, typeName="bootstrap", commandName="bootstrapDetectorMap.py"
+):
     """Sources for ``bootstrapDetectorMap.py``
 
     This process does not always need running.
@@ -609,8 +709,7 @@ class BootstrapSource(
 
     __slots__ = ["groups"]
 
-    def __init__(
-            self, groups: Iterable[BootstrapSourceSubgroup], validity: int):
+    def __init__(self, groups: Iterable[BootstrapSourceSubgroup], validity: int):
         super().__init__(CommandConfig(), SourceFilter(), validity)
         self.groups = list(groups)
 
@@ -656,20 +755,35 @@ class BootstrapSource(
             flatSource = SourceFilter.fromYaml(block, key="flatId", remove=True)
             arcSource = SourceFilter.fromYaml(block, key="arcId", remove=True)
             if block:
-                raise RuntimeError(f'Invalid keys for {cls.__name__}["group"]: {list(block.keys())}')
+                raise RuntimeError(
+                    f'Invalid keys for {cls.__name__}["group"]: {list(block.keys())}'
+                )
             groups.append(
-                BootstrapSourceSubgroup(config=config, flatSource=flatSource, arcSource=arcSource))
+                BootstrapSourceSubgroup(
+                    config=config, flatSource=flatSource, arcSource=arcSource
+                )
+            )
 
         validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
 
         if yamlBlock:
-            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+            raise RuntimeError(
+                f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
+            )
 
         return cls(groups, validity)
 
     def execute(
-            self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            *, processes: int = 1, devel: bool = False):
+        self,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        *,
+        processes: int = 1,
+        devel: bool = False,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -686,6 +800,8 @@ class BootstrapSource(
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         for g in self.groups:
             command = [
@@ -693,8 +809,12 @@ class BootstrapSource(
                 dataDir,
                 f"--calib={calib}",
                 f"--rerun={rerun}",
-                "--doraise",
-                f"-j{processes}"]
+                "--longlog=1",
+                f"-j{processes}",
+            ]
+
+            if not allowErrors:
+                command += ["--doraise"]
 
             command += getDevelopmentOptions() if devel else []
             command += g.flatSource.getCommandLine(key="flatId")
@@ -722,20 +842,23 @@ class BootstrapSource(
 
 
 class _FiberProfilesNoCombineSource(
-        CalibSource,
-        typeName="_fiberProfilesNoCombine", commandName="constructFiberProfiles.py"):
+    CalibSource,
+    typeName="_fiberProfilesNoCombine",
+    commandName="constructFiberProfiles.py",
+):
     """Do not use this class explicitly.
 
     This class is used internally by FiberProfilesSource
     to call constructFiberProfiles.py for each group of input FITS files.
     """
+
     pass
 
 
 @export
 class FiberProfilesSource(
-        CalibSource,
-        typeName="fiberProfiles", commandName="combineFiberProfiles.py"):
+    CalibSource, typeName="fiberProfiles", commandName="combineFiberProfiles.py"
+):
     """Sources to construct fiberProfiles.
 
     How to construct fiberProfiles is quite different
@@ -755,7 +878,12 @@ class FiberProfilesSource(
 
     __slots__ = ["groups"]
 
-    def __init__(self, config: CommandConfig, groups: Iterable[_FiberProfilesNoCombineSource], validity: int):
+    def __init__(
+        self,
+        config: CommandConfig,
+        groups: Iterable[_FiberProfilesNoCombineSource],
+        validity: int,
+    ):
         super().__init__(config, SourceFilter(), validity)
         self.groups = list(groups)
 
@@ -805,13 +933,23 @@ class FiberProfilesSource(
         validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
 
         if yamlBlock:
-            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+            raise RuntimeError(
+                f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
+            )
 
         return cls(config, groups, validity)
 
     def execute(
-            self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            *, processes: int = 1, devel: bool = False):
+        self,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        *,
+        processes: int = 1,
+        devel: bool = False,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -828,16 +966,27 @@ class FiberProfilesSource(
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         for g in self.groups:
-            g.execute(fout, dataDir, calib, rerun, processes=processes, devel=devel)
+            g.execute(
+                fout,
+                dataDir,
+                calib,
+                rerun,
+                processes=processes,
+                devel=devel,
+                allowErrors=allowErrors,
+            )
 
         fiberProfilesDir = os.path.join(dataDir, "rerun", rerun, "FIBERPROFILES")
         print(f"mkdir {shlex.quote(fiberProfilesDir)}/COMBINED", file=fout)
         print('_get1stMatch() { if test -e "$1" ; then echo "$1" ; fi ; }', file=fout)
 
         for detector in ["b1", "r1", "m1", "n1"]:
-            command = textwrap.dedent(fr"""
+            command = textwrap.dedent(
+                rf"""
                 profiles0="$(_get1stMatch {shlex.quote(fiberProfilesDir)}/pfsFiberProfiles-*-{detector}.fits)"
                 if [ -n "$profiles0" ]
                 then
@@ -845,7 +994,8 @@ class FiberProfilesSource(
                         {shlex.quote(fiberProfilesDir)}/COMBINED/"$(basename "$profiles0")" \
                         {shlex.quote(fiberProfilesDir)}/pfsFiberProfiles-*-{detector}.fits
                 fi
-            """)
+            """
+            )
             print(command[1:].rstrip(), file=fout)
 
     @property
@@ -860,12 +1010,19 @@ class FiberProfilesSource(
 
 @export
 class DetectorMapSource(
-        CalibSource,
-        typeName="detectorMap", commandName="reduceArc.py"):
-
+    CalibSource, typeName="detectorMap", commandName="reduceArc.py"
+):
     def execute(
-            self, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            *, processes: int = 1, devel: bool = False):
+        self,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        *,
+        processes: int = 1,
+        devel: bool = False,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to construct this calib from its source.
 
         Parameters
@@ -882,14 +1039,20 @@ class DetectorMapSource(
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             self.commandName,
             dataDir,
             f"--calib={calib}",
             f"--rerun={rerun}",
-            "--doraise",
-            f"-j{processes}"]
+            "--longlog=1",
+            f"-j{processes}",
+        ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         command += getDevelopmentOptions() if devel else []
         command += self.source.getCommandLine()
@@ -961,8 +1124,11 @@ class CalibBlock:
 
         try:
             sources = {
-                typeName: CalibSource.getSubclass(typeName).fromYaml(ensureInstance(block, dict))
-                for typeName, block in yamlBlock.items() if typeName != "name"
+                typeName: CalibSource.getSubclass(typeName).fromYaml(
+                    ensureInstance(block, dict)
+                )
+                for typeName, block in yamlBlock.items()
+                if typeName != "name"
             }
         except Exception as e:
             exceptionAddInfo(e, f"context: {cls.__name__}:{name}")
@@ -971,9 +1137,21 @@ class CalibBlock:
         return cls(name, sources)
 
     def execute(
-            self, logger: lsst.log.Log, fout: TextIO, dataDir: str, calib: str, rerun: str, copyMode: str,
-            calibTypes: Iterable[str] = [],
-            *, processes: int = 1, clean: bool = False, devel: bool = False, overwrite: bool = False):
+        self,
+        logger: lsst.log.Log,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        copyMode: str,
+        calibTypes: Iterable[str] = [],
+        *,
+        processes: int = 1,
+        clean: bool = False,
+        devel: bool = False,
+        overwrite: bool = False,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to construct and ingest calibs.
 
         Parameters
@@ -1001,11 +1179,15 @@ class CalibBlock:
             Run commands in the development mode (no versioning).
         overwrite : `bool`
             Overwrite old calibs on ingestion.
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         calibTypes = set(calibTypes)
         if calibTypes:
             # sort calibTypes according to self.calibTypes
-            calibTypes = [typeName for typeName in self.calibTypes if typeName in calibTypes]
+            calibTypes = [
+                typeName for typeName in self.calibTypes if typeName in calibTypes
+            ]
         else:
             calibTypes = self.calibTypes
 
@@ -1013,12 +1195,26 @@ class CalibBlock:
         for typeName in calibTypes:
             if typeName in self.sources:
                 self.sources[typeName].execute(
-                    fout, dataDir, calib, f"{rerun}/{self.name}/{typeName}",
-                    processes=processes, devel=devel)
+                    fout,
+                    dataDir,
+                    calib,
+                    f"{rerun}/{self.name}/{typeName}",
+                    processes=processes,
+                    devel=devel,
+                    allowErrors=allowErrors,
+                )
                 self.sources[typeName].ingest(
-                    fout, dataDir, calib, f"{rerun}/{self.name}/{typeName}", copyMode, overwrite=overwrite)
+                    fout,
+                    dataDir,
+                    calib,
+                    f"{rerun}/{self.name}/{typeName}",
+                    copyMode,
+                    overwrite=overwrite,
+                )
                 if clean:
-                    self.sources[typeName].clean(fout, dataDir, f"{rerun}/{self.name}/{typeName}")
+                    self.sources[typeName].clean(
+                        fout, dataDir, f"{rerun}/{self.name}/{typeName}"
+                    )
 
 
 @export
@@ -1084,7 +1280,9 @@ class ScienceStep:
         config = CommandConfig.fromYaml(yamlBlock, remove=True)
 
         if yamlBlock:
-            raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+            raise RuntimeError(
+                f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
+            )
 
         return cls(config)
 
@@ -1105,8 +1303,17 @@ class ScienceStep:
         return ScienceStep.__subclasses[typeName]
 
     def execute(
-            self, fout: TextIO, source: SourceFilter, dataDir: str, calib: str, rerun: str,
-            *, processes: int = 1, devel: bool = False):
+        self,
+        fout: TextIO,
+        source: SourceFilter,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        *,
+        processes: int = 1,
+        devel: bool = False,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands for this step.
 
         Parameters
@@ -1125,14 +1332,20 @@ class ScienceStep:
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         command = [
             self.commandName,
             dataDir,
             f"--calib={calib}",
             f"--rerun={rerun}",
-            "--doraise",
-            f"-j{processes}"]
+            "--longlog=1",
+            f"-j{processes}",
+        ]
+
+        if not allowErrors:
+            command += ["--doraise"]
 
         command += getDevelopmentOptions() if devel else []
         command += source.getCommandLine()
@@ -1143,36 +1356,36 @@ class ScienceStep:
 
 @export
 class ReduceExposureStep(
-        ScienceStep,
-        typeName="reduceExposure", commandName="reduceExposure.py"):
+    ScienceStep, typeName="reduceExposure", commandName="reduceExposure.py"
+):
     pass
 
 
 @export
-class MergeArmsStep(
-        ScienceStep,
-        typeName="mergeArms", commandName="mergeArms.py"):
+class MergeArmsStep(ScienceStep, typeName="mergeArms", commandName="mergeArms.py"):
     pass
 
 
 @export
 class CalculateReferenceFluxStep(
-        ScienceStep,
-        typeName="calculateReferenceFlux", commandName="calculateReferenceFlux.py"):
+    ScienceStep,
+    typeName="calculateReferenceFlux",
+    commandName="calculateReferenceFlux.py",
+):
     pass
 
 
 @export
 class FluxCalibrateStep(
-        ScienceStep,
-        typeName="fluxCalibrate", commandName="fluxCalibrate.py"):
+    ScienceStep, typeName="fluxCalibrate", commandName="fluxCalibrate.py"
+):
     pass
 
 
 @export
 class CoaddSpectraStep(
-        ScienceStep,
-        typeName="coaddSpectra", commandName="coaddSpectra.py"):
+    ScienceStep, typeName="coaddSpectra", commandName="coaddSpectra.py"
+):
     pass
 
 
@@ -1200,10 +1413,16 @@ class ScienceBlock:
     # but the order of subclass definitions would be significant
     # if it were to be autogenerated.
     steps = [
-        "reduceExposure", "mergeArms", "calculateReferenceFlux",
-        "fluxCalibrate", "coaddSpectra"]
+        "reduceExposure",
+        "mergeArms",
+        "calculateReferenceFlux",
+        "fluxCalibrate",
+        "coaddSpectra",
+    ]
 
-    def __init__(self, name: str, source: SourceFilter, policies: Mapping[str, ScienceStep]):
+    def __init__(
+        self, name: str, source: SourceFilter, policies: Mapping[str, ScienceStep]
+    ):
         self.name = name
         self.source = source
 
@@ -1260,12 +1479,18 @@ class ScienceBlock:
         try:
             source = SourceFilter.fromYaml(yamlBlock, remove=True)
             policies = {
-                step: ScienceStep.getSubclass(step).fromYaml(ensureInstance(block, dict))
-                for step, block in ensureInstance(yamlBlock.pop("policy", {}), dict).items()
+                step: ScienceStep.getSubclass(step).fromYaml(
+                    ensureInstance(block, dict)
+                )
+                for step, block in ensureInstance(
+                    yamlBlock.pop("policy", {}), dict
+                ).items()
             }
 
             if yamlBlock:
-                raise RuntimeError(f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}")
+                raise RuntimeError(
+                    f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
+                )
         except Exception as e:
             exceptionAddInfo(e, f"context: {cls.__name__}:{name}")
             raise
@@ -1273,9 +1498,18 @@ class ScienceBlock:
         return cls(name, source, policies)
 
     def execute(
-            self, logger: lsst.log.Log, fout: TextIO, dataDir: str, calib: str, rerun: str,
-            steps: Iterable[str] = [],
-            *, processes: int = 1, devel: bool = False):
+        self,
+        logger: lsst.log.Log,
+        fout: TextIO,
+        dataDir: str,
+        calib: str,
+        rerun: str,
+        steps: Iterable[str] = [],
+        *,
+        processes: int = 1,
+        devel: bool = False,
+        allowErrors: bool = False,
+    ):
         """Put to ``fout`` commands to execute this block.
 
         Parameters
@@ -1297,6 +1531,8 @@ class ScienceBlock:
             Number of processes to use.
         devel : `bool`
             Run commands in the development mode (no versioning).
+        allowErrors : `bool`
+            Allow processing errors to be non-fatal?
         """
         steps = set(steps)
         if steps:
@@ -1309,8 +1545,15 @@ class ScienceBlock:
 
         for step in steps:
             self.policies[step].execute(
-                fout, self.source, dataDir, calib, f"{rerun}/pipeline",
-                processes=processes, devel=devel)
+                fout,
+                self.source,
+                dataDir,
+                calib,
+                f"{rerun}/pipeline",
+                processes=processes,
+                devel=devel,
+                allowErrors=allowErrors,
+            )
 
 
 def getDevelopmentOptions() -> List[str]:
@@ -1324,7 +1567,9 @@ def getDevelopmentOptions() -> List[str]:
 
 
 @export
-def processYaml(yamlFile: str) -> Tuple[InitSource, Dict[str, CalibBlock], Dict[str, ScienceBlock]]:
+def processYaml(
+    yamlFile: str,
+) -> Tuple[InitSource, Dict[str, CalibBlock], Dict[str, ScienceBlock]]:
     """Process a YAML file defining a data processing.
 
     Parameters
@@ -1442,7 +1687,9 @@ def ensureInstance(instance: Any, types: Union[type, Collection[type]]) -> Any:
         if len(value) > 50:
             value = value[:47] + "..."
 
-        raise TypeError(f"illegal type (must be {typename}): `{type(instance).__name__}` (value: '{value}')")
+        raise TypeError(
+            f"illegal type (must be {typename}): `{type(instance).__name__}` (value: '{value}')"
+        )
 
     return instance
 
@@ -1535,24 +1782,25 @@ def makeFileobj(name: Union[str, TextIO], *args, **kwargs):
 
 @export
 def generateCommands(
-        *,
-        logger: lsst.log.Log,
-        dataDir: str,
-        specFile: str,
-        init: bool = False,
-        blocks: Iterable[str] = [],
-        calib: Optional[str] = None,
-        calibTypes: Iterable[str] = [],
-        clean: bool = False,
-        devel: bool = False,
-        copyMode: str = "copy",
-        force: bool = False,
-        processes: int = 1,
-        output: Union[str, TextIO] = "a.sh",
-        overwriteCalib: bool = False,
-        rerun: str = "noname",
-        scienceSteps: Iterable[str] = [],
-        allowErrors: bool = False):
+    *,
+    logger: lsst.log.Log,
+    dataDir: str,
+    specFile: str,
+    init: bool = False,
+    blocks: Iterable[str] = [],
+    calib: Optional[str] = None,
+    calibTypes: Iterable[str] = [],
+    clean: bool = False,
+    devel: bool = False,
+    copyMode: str = "copy",
+    force: bool = False,
+    processes: int = 1,
+    output: Union[str, TextIO] = "a.sh",
+    overwriteCalib: bool = False,
+    rerun: str = "noname",
+    scienceSteps: Iterable[str] = [],
+    allowErrors: bool = False,
+):
     """Generate shell commands according to ``specFile``
 
     Parameters
@@ -1616,11 +1864,14 @@ def generateCommands(
         if force:
             logger.warning(
                 "'%s' doesn't exist"
-                " (To start without this directory, use `init` option)", calib)
+                " (To start without this directory, use `init` option)",
+                calib,
+            )
         else:
             raise RuntimeError(
                 f"'{calib}' doesn't exist"
-                " (To start without this directory, use `init` option)")
+                " (To start without this directory, use `init` option)"
+            )
 
     initSource, calibBlocks, scienceBlocks = processYaml(specFile)
     possibleBlocks = unique(list(calibBlocks.keys()) + list(scienceBlocks.keys()))
@@ -1631,12 +1882,17 @@ def generateCommands(
     if unrecognisedBlocks:
         if force:
             logger.warning("Unrecognised blocks: %s", str(list(unrecognisedBlocks)))
-        logger.info("Some blocks are not recognised. Possible blocks are %s", str(list(possibleBlocks)))
+        logger.info(
+            "Some blocks are not recognised. Possible blocks are %s",
+            str(list(possibleBlocks)),
+        )
         if not force:
             raise RuntimeError(f"Unrecognised blocks: '{list(unrecognisedBlocks)}'")
 
     with makeFileobj(output, "w") as fout:
-        logger.info("Start writing shell commands on '%s'", getattr(fout, "name", "(fileobj)"))
+        logger.info(
+            "Start writing shell commands on '%s'", getattr(fout, "name", "(fileobj)")
+        )
 
         print("#!/bin/sh", file=fout)
         setopts = "ux"
@@ -1647,21 +1903,41 @@ def generateCommands(
         if init:
             if initSource is None:
                 raise RuntimeError("No 'init' block to execute")
-            initSource.execute(logger, fout, dataDir, calib)
+            initSource.execute(logger, fout, dataDir, calib, allowErrors=allowErrors)
 
         for blockName in blocks:
             if blockName in calibBlocks:
                 calibBlocks[blockName].execute(
-                    logger, fout, dataDir, calib, rerun, copyMode,
-                    calibTypes=calibTypes, processes=processes, clean=clean, devel=devel,
-                    overwrite=overwriteCalib)
+                    logger,
+                    fout,
+                    dataDir,
+                    calib,
+                    rerun,
+                    copyMode,
+                    calibTypes=calibTypes,
+                    processes=processes,
+                    clean=clean,
+                    devel=devel,
+                    overwrite=overwriteCalib,
+                    allowErrors=allowErrors,
+                )
 
         for blockName in blocks:
             if blockName in scienceBlocks:
                 scienceBlocks[blockName].execute(
-                    logger, fout, dataDir, calib, rerun,
-                    steps=scienceSteps, processes=processes, devel=devel)
+                    logger,
+                    fout,
+                    dataDir,
+                    calib,
+                    rerun,
+                    steps=scienceSteps,
+                    processes=processes,
+                    devel=devel,
+                    allowErrors=allowErrors,
+                )
 
-        logger.info("End writing shell commands on '%s'", getattr(fout, "name", "(fileobj)"))
+        logger.info(
+            "End writing shell commands on '%s'", getattr(fout, "name", "(fileobj)")
+        )
 
     os.chmod(output, os.stat(output).st_mode | stat.S_IXUSR | stat.S_IXGRP)
