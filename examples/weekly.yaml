@@ -36,32 +36,13 @@ calibBlock:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "isr.doIPC=False"  # No IPC in simulated data
     fiberProfiles:
-      group:
-        -
-          id: ["visit=35", "arm=b^r^n"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
-        -
-          id: ["visit=37", "arm=b^r^n"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
+      id: ["visit=35^37", "arm=b^r^n"]
+      normId: ["field=FLAT", "arm=b^r^n", "dither=0"]
   -
     name: calibs_for_m
     fiberProfiles:
-      group:
-        -
-          id: ["visit=36", "arm=m"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
-        -
-          id: ["visit=38", "arm=m"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
-
+      id: ["visit=36^38", "arm=m"]
+      normId: ["field=FLAT", "arm=m", "dither=0"]
   -
     name: arc_brn
     detectorMap:

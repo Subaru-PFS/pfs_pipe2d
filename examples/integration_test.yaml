@@ -28,15 +28,8 @@ calibBlock:
       config:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
     fiberProfiles:
-      group:
-        -
-          id: "field=FLAT_ODD"
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-        -
-          id: "field=FLAT_EVEN"
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+      id: "field=FLAT_ODD^FLAT_EVEN"
+      normId: ["field=FLAT", "dither=0"]
     detectorMap:
       id: "field=ARC"
       config:
