@@ -30,6 +30,8 @@ calibBlock:
     fiberProfiles:
       id: "field=FLAT_ODD^FLAT_EVEN"
       normId: ["field=FLAT", "dither=0"]
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
     detectorMap:
       id: "field=ARC"
       config:

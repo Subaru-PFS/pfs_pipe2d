@@ -38,11 +38,19 @@ calibBlock:
     fiberProfiles:
       id: ["visit=35^37", "arm=b^r^n"]
       normId: ["field=FLAT", "arm=b^r^n", "dither=0"]
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "profiles.profileSwath=2000"  # Not much variation
   -
     name: calibs_for_m
     fiberProfiles:
       id: ["visit=36^38", "arm=m"]
       normId: ["field=FLAT", "arm=m", "dither=0"]
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "profiles.profileSwath=2000"  # Not much variation
   -
     name: arc_brn
     detectorMap:
