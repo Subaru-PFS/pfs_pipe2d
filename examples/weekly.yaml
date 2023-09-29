@@ -31,41 +31,30 @@ calibBlock:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "isr.doIPC=False"  # No IPC in simulated data
     flat:
-      id: ["field=FLAT", "arm=b^r^n"]
+      id: ["visit=20..22^26..37", "arm=b^r^n"]
       config:
         - "isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "isr.doIPC=False"  # No IPC in simulated data
     fiberProfiles:
-      group:
-        -
-          id: ["visit=35", "arm=b^r^n"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
-        -
-          id: ["visit=37", "arm=b^r^n"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
+      id: ["visit=38^40", "arm=b^r^n"]
+      normId: ["visit=20..22", "arm=b^r^n", "dither=0"]
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "profiles.profileSwath=2000"  # Not much variation
   -
     name: calibs_for_m
     fiberProfiles:
-      group:
-        -
-          id: ["visit=36", "arm=m"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
-        -
-          id: ["visit=38", "arm=m"]
-          config:
-            - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-            - "isr.doIPC=False"  # No IPC in simulated data
-
+      id: ["field=FLAT_ODD^FLAT_EVEN", "arm=m"]
+      normId: ["field=FLAT", "arm=m", "dither=0"]
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "profiles.profileSwath=2000"  # Not much variation
   -
     name: arc_brn
     detectorMap:
-      id: ["visit=39..45:2", "arm=b^r^n"]
+      id: ["visit=42..48:2", "arm=b^r^n"]
       config:
         - "fitDetectorMap.doSlitOffsets=True"
         - "fitDetectorMap.minSignalToNoise=20"
@@ -74,7 +63,7 @@ calibBlock:
   -
     name: arc_m
     detectorMap:
-      id: ["visit=40..46:2", "arm=m"]
+      id: ["visit=43..49:2", "arm=m"]
       config:
         - "fitDetectorMap.doSlitOffsets=True"
         - "fitDetectorMap.minSignalToNoise=20"
@@ -87,7 +76,7 @@ calibBlock:
 scienceBlock:
   -
     name: pipeline_on_brn
-    id: ["visit=47^48^49^53^54^57"]
+    id: ["visit=50..52^56^57^60"]
     policy:
       reduceExposure:
         config:
@@ -97,7 +86,7 @@ scienceBlock:
           - "repair.cosmicray.cond3_fac=10"
   -
     name: pipeline_on_bmn
-    id: ["visit=50^51^52^55^56^58"]
+    id: ["visit=53..55^58^59^61"]
     policy:
       reduceExposure:
         config:

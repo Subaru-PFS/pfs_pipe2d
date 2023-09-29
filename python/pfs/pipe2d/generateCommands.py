@@ -33,7 +33,6 @@ import enum
 import os
 import re
 import shlex
-import textwrap
 import stat
 
 import yaml
@@ -449,6 +448,9 @@ class CalibSource:
         Name of the calib type. This is the name used in YAML files.
     ``commandName``
         Name of the command to construct the calib.
+    ``isBatchPoolTask``
+        Is the called task a subclass of `lsst.ctrl.pool.parallel.BatchPoolTask`?
+        (Default: True)
     """
 
     __slots__ = ["config", "source", "validity"]
@@ -461,11 +463,14 @@ class CalibSource:
         self.source = source
         self.validity = validity
 
-    def __init_subclass__(cls, *, typeName: str, commandName: str, **kwargs):
+    def __init_subclass__(
+        cls, *, typeName: str, commandName: str, isBatchPoolTask=True, **kwargs
+    ):
         super().__init_subclass__(**kwargs)
         CalibSource.__subclasses[typeName] = cls
         cls.typeName = typeName
         cls.commandName = commandName
+        cls.isBatchPoolTask = isBatchPoolTask
 
     @classmethod
     def fromYaml(cls, yamlBlock: Mapping[str, Any]) -> "CalibSource":
@@ -487,6 +492,9 @@ class CalibSource:
                 A string like ``"field=BIAS"``, or
                 a list of str like ``["field=BIAS", "dateObs=2000-01-01"]``
 
+            Additional fields must exist when a subclass overrides
+            ``cls._fromYamlAdditionalFields().``
+
         Returns
         -------
         calibSource : `CalibSource`
@@ -495,13 +503,35 @@ class CalibSource:
         config = CommandConfig.fromYaml(yamlBlock, remove=True)
         source = SourceFilter.fromYaml(yamlBlock, remove=True)
         validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
+        additionalFields = cls._fromYamlAdditionalFields(yamlBlock)
 
         if yamlBlock:
             raise RuntimeError(
                 f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
             )
 
-        return cls(config, source, validity)
+        return cls(config, source, validity, **additionalFields)
+
+    @classmethod
+    def _fromYamlAdditionalFields(cls, yamlBlock: Mapping[str, Any]) -> Dict[str, Any]:
+        """Construct additional members of ``CalibSource`` from a YAML block.
+
+        By default, this method does nothing.
+        Subclasses can override this method instead of overriding ``fromYaml()``
+        as a whole. Subclasses must pop those items from ``yamlBlock`` that they use.
+
+        Parameters
+        ----------
+        yamlBlock : `Mapping[str, Any]`
+            A block of a YAML data structure.
+
+        Returns
+        -------
+        members : `Dict[str, Any]`
+            Additional members of ``CalibSource``.
+            This is passed to the constructor as ``cls(..., **members)``
+        """
+        return {}
 
     @staticmethod
     def getSubclass(typeName: str) -> Type["CalibSource"]:
@@ -555,9 +585,17 @@ class CalibSource:
             f"--calib={calib}",
             f"--rerun={rerun}",
             "--longlog=1",
-            "--batch-type=smp",
-            f"--cores={processes}",
         ]
+
+        if self.isBatchPoolTask:
+            command += [
+                "--batch-type=smp",
+                f"--cores={processes}",
+            ]
+        else:
+            command += [
+                f"-j{processes}",
+            ]
 
         if not allowErrors:
             command += ["--doraise"]
@@ -565,8 +603,23 @@ class CalibSource:
         command += getDevelopmentOptions() if devel else []
         command += self.source.getCommandLine()
         command += self.config.getCommandLine()
+        command += self._getAdditionalCommandLineArgs()
 
         print(f"{shellCommand(command)}", file=fout)
+
+    def _getAdditionalCommandLineArgs(self) -> List[str]:
+        """Get additional command line arguments.
+
+        By default, this method returns the empty list.
+        Subclasses can override this method instead of overriding ``execute()``
+        as a whole.
+
+        Returns
+        -------
+        args : `List[str]`
+            Additional command line arguments.
+        """
+        return []
 
     def ingest(
         self,
@@ -841,171 +894,71 @@ class BootstrapSource(
         return True
 
 
-class _FiberProfilesNoCombineSource(
-    CalibSource,
-    typeName="_fiberProfilesNoCombine",
-    commandName="constructFiberProfiles.py",
-):
-    """Do not use this class explicitly.
-
-    This class is used internally by FiberProfilesSource
-    to call constructFiberProfiles.py for each group of input FITS files.
-    """
-
-    pass
-
-
 @export
 class FiberProfilesSource(
-    CalibSource, typeName="fiberProfiles", commandName="combineFiberProfiles.py"
+    CalibSource,
+    typeName="fiberProfiles",
+    commandName="reduceProfiles.py",
+    isBatchPoolTask=False,
 ):
-    """Sources to construct fiberProfiles.
-
-    How to construct fiberProfiles is quite different
-    from how to construct other calibs.
-    YAML structure for fiberProfiles is quite peculiar, accordingly.
-    See the docstring of ``fromYaml()`` for details.
+    """Sources to construct a type of calib.
+    The concrete type of the calib is defined by subclasses.
 
     Parameters
     ----------
     config : `CommandConfig`
         Configurations used in constructing this calib.
-    groups : `Iterable[_FiberProfilesNoCombineSource]`
-        Groups of sources, each group for non-combined fiberProfiles.
+    source : `SourceFilter`
+        Sources for this calib.
     validity : `int`
         Valid days of the resulting calib.
+    normSource: `SourceFilter`
+        Sources passed to `--normId`.
     """
 
-    __slots__ = ["groups"]
+    __slots__ = ["normSource"]
 
     def __init__(
         self,
         config: CommandConfig,
-        groups: Iterable[_FiberProfilesNoCombineSource],
+        source: SourceFilter,
         validity: int,
+        normSource: SourceFilter,
     ):
-        super().__init__(config, SourceFilter(), validity)
-        self.groups = list(groups)
+        super().__init__(config, source, validity)
+        self.normSource = normSource
 
     @classmethod
-    def fromYaml(cls, yamlBlock: Mapping[str, Any]) -> "FiberProfilesSource":
-        """Construct ``FiberProfilesSource`` from a YAML block.
+    def _fromYamlAdditionalFields(cls, yamlBlock: Mapping[str, Any]) -> Dict[str, Any]:
+        """Construct additional members of ``FiberProfilesSource`` from a YAML block.
 
         Parameters
         ----------
         yamlBlock : `Mapping[str, Any]`
-            A block of a YAML data structure:
+            A block of a YAML data structure. It must have this member:
 
-            ``"group"``
-                List of Mapping[str, Any]`.
-                fiber profiles are created for each group, and then combined.
-                Contents of each group are:
-
-                ``"id"``
-                    A string like ``"field=FLAT_ODD"``,
-                    or a list of strings like
-                    ``["field=FLAT_ODD", "dateObs=2000-01-01"]``
-                ``"config"``
-                    A config string, or a list of config strings.
-                ``"configfile"``
-                    Path to a configuration file
-
-            ``"config"``
-                A config string, or a list of config strings.
-                This config is used in the combining process.
-            ``"configfile"``
-                Path to a configuration file
-                This config is used in the combining process.
-            ``"validity"``
-                Valid days for the resulting calib
-                before and after the date of the calib.
+            ``"normId"``
+                A string like ``"field=FLAT"``, or
+                a list of str like ``["field=FLAT", "dateObs=2000-01-01"]``
 
         Returns
         -------
-        fiberProfilesSource : `FiberProfilesSource`
+        members : `Dict[str, Any]`
+            Additional members of ``FiberProfilesSource``.
         """
-        yamlBlock = dict(yamlBlock)
-        groups = [
-            _FiberProfilesNoCombineSource.fromYaml(ensureInstance(block, dict))
-            for block in ensureInstance(yamlBlock.pop("group"), list)
-        ]
-        config = CommandConfig.fromYaml(yamlBlock, remove=True)
-        validity = int(yamlBlock.pop("validity", DEFAULT_CALIB_VALIDITY))
+        return {
+            "normSource": SourceFilter.fromYaml(yamlBlock, remove=True, key="normId")
+        }
 
-        if yamlBlock:
-            raise RuntimeError(
-                f"Invalid keys for {cls.__name__}: {list(yamlBlock.keys())}"
-            )
+    def _getAdditionalCommandLineArgs(self) -> List[str]:
+        """Get additional command line arguments.
 
-        return cls(config, groups, validity)
-
-    def execute(
-        self,
-        fout: TextIO,
-        dataDir: str,
-        calib: str,
-        rerun: str,
-        *,
-        processes: int = 1,
-        devel: bool = False,
-        allowErrors: bool = False,
-    ):
-        """Put to ``fout`` commands to construct this calib from its source.
-
-        Parameters
-        ----------
-        fout : `TextIO`
-            Output file where to write the command.
-        dataDir : `str`
-            Root of data repository.
-        calib : `str`
-            Name of output calibration directory.
-        rerun : `str`
-            Name of rerun.
-        processes : `int`
-            Number of processes to use.
-        devel : `bool`
-            Run commands in the development mode (no versioning).
-        allowErrors : `bool`
-            Allow processing errors to be non-fatal?
+        Returns
+        -------
+        args : `List[str]`
+            Additional command line arguments.
         """
-        for g in self.groups:
-            g.execute(
-                fout,
-                dataDir,
-                calib,
-                rerun,
-                processes=processes,
-                devel=devel,
-                allowErrors=allowErrors,
-            )
-
-        fiberProfilesDir = os.path.join(dataDir, "rerun", rerun, "FIBERPROFILES")
-        print(f"mkdir {shlex.quote(fiberProfilesDir)}/COMBINED", file=fout)
-        print('_get1stMatch() { if test -e "$1" ; then echo "$1" ; fi ; }', file=fout)
-
-        for detector in ["b1", "r1", "m1", "n1"]:
-            command = textwrap.dedent(
-                rf"""
-                profiles0="$(_get1stMatch {shlex.quote(fiberProfilesDir)}/pfsFiberProfiles-*-{detector}.fits)"
-                if [ -n "$profiles0" ]
-                then
-                    {self.commandName} \
-                        {shlex.quote(fiberProfilesDir)}/COMBINED/"$(basename "$profiles0")" \
-                        {shlex.quote(fiberProfilesDir)}/pfsFiberProfiles-*-{detector}.fits
-                fi
-            """
-            )
-            print(command[1:].rstrip(), file=fout)
-
-    @property
-    def outputSubdir(self) -> str:
-        """Name of subdirectory where calibs are output (`str`, read-only)
-
-        Output files are expected to be under
-        ``rerun/RERUNNAME/{self.outputSubdir}``.
-        """
-        return "FIBERPROFILES/COMBINED"
+        return self.normSource.getCommandLine(key="normId")
 
 
 @export

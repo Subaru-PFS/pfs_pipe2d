@@ -153,7 +153,7 @@ make_brn 10 --pfsDesignId $PFS_DESIGN_ID --exptime 0 --type bias
 # Darks
 make_brn 10 --pfsDesignId $PFS_DESIGN_ID --exptime 1800 --type dark
 # Dithered flats
-make_brn 3 --pfsDesignId $PFS_DESIGN_ID --exptime 30 --type flat --xoffset 0
+make_brmn 3 --pfsDesignId $PFS_DESIGN_ID --exptime 30 --type flat --xoffset 0
 make_brn 3 --pfsDesignId $PFS_DESIGN_ID --exptime 30 --type flat --xoffset 2000
 make_brn 3 --pfsDesignId $PFS_DESIGN_ID --exptime 30 --type flat --xoffset 4000
 make_brn 3 --pfsDesignId $PFS_DESIGN_ID --exptime 30 --type flat --xoffset -2000

@@ -100,7 +100,7 @@ class ProductionTestCase(lsst.utils.tests.TestCase):
 
 @classParameters(
     arms=("brn", "m"),
-    visit=(39, 40),
+    visit=(42, 43),
 )
 class ArcTestCase(lsst.utils.tests.TestCase):
     def setUp(self):
