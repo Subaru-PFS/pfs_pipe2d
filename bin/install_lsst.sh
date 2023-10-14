@@ -42,20 +42,21 @@ install_lsst () {
     patch -p0 <<EOF
 --- newinstall.sh	2022-02-17 18:12:04.000000000 -0500
 +++ newinstall.sh	2022-02-17 18:12:17.000000000 -0500
-@@ -506,6 +506,8 @@
+@@ -506,6 +506,9 @@
  	(
  		set -Eeo pipefail
 
++        echo "conda==22.11.1" >> conda/current/conda-meta/pinned
 +        conda update -n base -c conda-forge -y conda
 +
  		# install mamba to speed up environment creation
  		$cmd conda install -c conda-forge -y mamba
 
-@@ -529,6 +531,7 @@
+@@ -529,6 +532,7 @@
  		else
  			args+=("rubin-env=${ref}")
  		fi
-+		args+=("mkl" "jupyter" "notebook<7" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22" "cryptography=37.0.4" "matplotlib=3.6" "pydantic=1.10.10" "astrowidgets" "pybind11=2.10.4")
++		args+=("mkl" "jupyter" "notebook<7" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22.0.0" "cryptography=37.0.4" "cffi=1.15.1" "matplotlib=3.6" "pydantic=1.10.10" "astrowidgets" "pybind11=2.10.4" "zstd=1.5.2")
 
  		$cmd mamba "${args[@]}"
 EOF
