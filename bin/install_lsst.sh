@@ -56,7 +56,7 @@ install_lsst () {
  		else
  			args+=("rubin-env=${ref}")
  		fi
-+		args+=("mkl" "jupyter" "notebook<7" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22.0.0" "cryptography=37.0.4" "cffi=1.15.1" "matplotlib=3.6" "pydantic=1.10.10" "astrowidgets" "pybind11=2.10.4" "zstd=1.5.2")
++		args+=("mkl" "jupyter" "notebook<7" "ipython" "ipympl" "ipywidgets" "jupyter_contrib_nbextensions" "astroplan" "ipyevents" "ginga" "mypy" "black" "isort" "pygithub" "pyopenssl=22.0.0" "cryptography=37.0.4" "cffi=1.15.1" "matplotlib=3.6" "pydantic=1.10.10" "astrowidgets" "pybind11=2.10.4" "zstd=1.5.2" "astropy=5.0.5" "galsim=2.3.5" "iminuit=2.19.0" "pandas=1.5.3" "scipy=1.8.1" "spherematch=0.9.2")
 
  		$cmd mamba "${args[@]}"
 EOF
