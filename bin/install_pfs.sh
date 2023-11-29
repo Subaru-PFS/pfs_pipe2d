@@ -87,6 +87,9 @@ setup_args=""
 setup pipe_drivers ${setup_args}
 export -f setup
 
+# Set git-lfs in ~/.gitconfig. (It is safe to call "git lfs install" duplicately)
+git lfs install --skip-repo
+
 [ -e $PREFIX/pfs ] && rm -rf $PREFIX/pfs  # Want to regenerate PFS-specific packages every time
 mkdir -p $PREFIX/pfs
 # Install PFS packages
