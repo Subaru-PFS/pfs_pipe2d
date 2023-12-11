@@ -47,6 +47,7 @@ class UserDatabase:
                  "rhl@astro.princeton.edu")
         self.add("craigl", "Craig Loomis", "craigl", "U3A2P4FEH", "cloomis@astro.princeton.edu")
         self.add("afur", "Arnaud Le Fur", "alefur", "U3MLJRWQK", "afur@astro.princeton.edu")
+        self.add("ky5047", "Kiyoto Yabe", "kiyoyabe", "U3FBR3SAH", "kiyoyabe@naoj.org")
         return self
 
     def add(self, userName, name, gitHub, slack, email):
