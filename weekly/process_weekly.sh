@@ -82,6 +82,12 @@ generateCommands.py $WORKDIR \
 
 sh $WORKDIR/calibs_for_brn.sh
 
+# Make fake flat for m1
+# These used to be copied automatically from the r flat, but that's not correct.
+# We don't have the simulated data to generate it from, so we'll just make a fake one.
+makeFakeFlat.py $WORKDIR
+ingestPfsCalibs.py $WORKDIR --calib $WORKDIR/CALIB --validity 10000 $WORKDIR/pfsFakeFlat-m1.fits
+
 # Calibs for m
 generateCommands.py $WORKDIR \
     $HERE/../examples/weekly.yaml \
