@@ -41,6 +41,8 @@ calibBlock:
       config:
         - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "normalize.reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "normalize.reduceExposure.isr.doIPC=False"  # No crosstalk in simulated data
         - "profiles.profileSwath=2000"  # Not much variation
   -
     name: calibs_for_m
@@ -50,6 +52,8 @@ calibBlock:
       config:
         - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "normalize.reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "normalize.reduceExposure.isr.doIPC=False"  # No crosstalk in simulated data
         - "profiles.profileSwath=2000"  # Not much variation
   -
     name: arc_brn
@@ -69,6 +73,22 @@ calibBlock:
         - "fitDetectorMap.minSignalToNoise=20"
         - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+  -
+    name: fiberNorms_brn
+    fiberNorms:
+      id: ["visit=20..22", "dither=0"]
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "doScreen=False"  # Simulated data have no screen response, and wrong scale for pfiCenter
+  -
+    name: fiberNorms_m
+    fiberNorms:
+      id: ["visit=23..25", "arm=m", "dither=0"]
+      config:
+        - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
+        - "doScreen=False"  # Simulated data have no screen response, and wrong scale for pfiCenter
 
 #
 # Blocks of science pipelines
