@@ -54,3 +54,6 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+      fluxCalibrate:
+        config:
+          - "fitFocalPlane.polyOrder=0"  # Not enough FLUXCAL fibers to fit fluxCal as a function of position
