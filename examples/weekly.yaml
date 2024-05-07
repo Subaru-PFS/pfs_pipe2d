@@ -100,6 +100,9 @@ scienceBlock:
           - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
+      fluxCalibrate:
+        config:
+          - "fitFocalPlane.polyOrder=0"  # There is no variation over the focal plane
   -
     name: pipeline_on_bmn
     id: ["visit=53..55^58^59^61"]
@@ -110,3 +113,6 @@ scienceBlock:
           - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
+      fluxCalibrate:
+        config:
+          - "fitFocalPlane.polyOrder=0"  # There is no variation over the focal plane
