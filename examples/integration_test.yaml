@@ -37,11 +37,6 @@ calibBlock:
       id: "field=ARC"
       config:
         - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
-    fiberNorms:
-      id: ["field=FLAT", "dither=0"]
-      config:
-        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-        - "doScreen=False"  # Simulated data have no screen response, and wrong scale for pfiCenter
 
 #
 # Blocks of science pipelines
@@ -54,6 +49,12 @@ scienceBlock:
       reduceExposure:
         config:
           - "isr.doCrosstalk=False"  # No crosstalk in simulated data
+      mergeArms:
+        config:
+          - "doApplyFiberNorms=False"  # Not used
       fluxCalibrate:
         config:
           - "fitFocalPlane.polyOrder=0"  # Not enough FLUXCAL fibers to fit fluxCal as a function of position
+      coaddSpectra:
+        config:
+          - "doApplyFiberNorms=False"  # Not used

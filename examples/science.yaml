@@ -12,6 +12,12 @@ scienceBlock:
           - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
+      mergeArms:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed
+      coaddSpectra:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed
   -
     name: bmn
     id: ["visit=1002^1003^1006^1007"]
@@ -22,3 +28,9 @@ scienceBlock:
           - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
+      mergeArms:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed
+      coaddSpectra:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed

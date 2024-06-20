@@ -44,12 +44,6 @@ calibBlock:
         - "normalize.reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "normalize.reduceExposure.isr.doIPC=False"  # No crosstalk in simulated data
         - "profiles.profileSwath=2000"  # Not much variation
-    fiberNorms:
-      id: ["visit=20..22", "dither=0"]
-      config:
-        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-        - "isr.doIPC=False"  # No IPC in simulated data
-        - "doScreen=False"  # Simulated data have no screen response, and wrong scale for pfiCenter
   -
     name: calibs_for_m
     fiberProfiles:
@@ -61,12 +55,6 @@ calibBlock:
         - "normalize.reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "normalize.reduceExposure.isr.doIPC=False"  # No crosstalk in simulated data
         - "profiles.profileSwath=2000"  # Not much variation
-    fiberNorms:
-      id: ["visit=23..25", "arm=m", "dither=0"]
-      config:
-        - "isr.doCrosstalk=False"  # No crosstalk in simulated data
-        - "isr.doIPC=False"  # No IPC in simulated data
-        - "doScreen=False"  # Simulated data have no screen response, and wrong scale for pfiCenter
   -
     name: arc_brn
     detectorMap:
@@ -100,6 +88,12 @@ scienceBlock:
           - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
+      mergeArms:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed
+      coaddSpectra:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed
   -
     name: pipeline_on_bmn
     id: ["visit=53..55^58^59^61"]
@@ -110,3 +104,9 @@ scienceBlock:
           - "isr.doIPC=False"  # No IPC in simulated data
           - "repair.interp.modelPsf.defaultFwhm=1.5"
           - "repair.cosmicray.cond3_fac=10"
+      mergeArms:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed
+      coaddSpectra:
+        config:
+          - "doApplyFiberNorms=False"  # fiberNorms aren't constructed
