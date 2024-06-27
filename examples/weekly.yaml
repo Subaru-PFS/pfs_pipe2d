@@ -43,6 +43,7 @@ calibBlock:
         - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
         - "normalize.reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "normalize.reduceExposure.isr.doIPC=False"  # No crosstalk in simulated data
+        - "normalize.doApplyScreenResponse=False"  # No screen in simulated data
         - "profiles.profileSwath=2000"  # Not much variation
   -
     name: calibs_for_m
@@ -54,6 +55,7 @@ calibBlock:
         - "reduceExposure.isr.doIPC=False"  # No IPC in simulated data
         - "normalize.reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "normalize.reduceExposure.isr.doIPC=False"  # No crosstalk in simulated data
+        - "normalize.doApplyScreenResponse=False"  # No screen in simulated data
         - "profiles.profileSwath=2000"  # Not much variation
   -
     name: arc_brn

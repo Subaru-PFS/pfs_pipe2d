@@ -33,6 +33,7 @@ calibBlock:
       config:
         - "reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
         - "normalize.reduceExposure.isr.doCrosstalk=False"  # No crosstalk in simulated data
+        - "normalize.doApplyScreenResponse=False"  # No screen in simulated data
     detectorMap:
       id: "field=ARC"
       config:
