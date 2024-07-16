@@ -203,7 +203,7 @@ if $RUN_GEN3; then
     butler register-skymap $DATASTORE -C $OBS_PFS_DIR/gen3/skymap_discrete.py -c name=simulator
     butler ingest-raws $DATASTORE $drp_stella_data/raw/PFFA*.fits --ingest-task lsst.obs.pfs.gen3.PfsRawIngestTask --transfer link --fail-fast
     ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig simulator $drp_stella_data/raw/pfsConfig*.fits --transfer link
-    butler ingest-files $DATASTORE detectorMap_bootstrap PFS-F/detectorMap/bootstrap --prefix $DRP_PFS_DATA_DIR/detectorMap $DRP_PFS_DATA_DIR/detectorMap/detectorMap-sim.ecsv --transfer copy
+    butler ingest-files $DATASTORE detectorMap_bootstrap PFS-F/detectorMap/bootstrap --prefix $DRP_PFS_DATA_DIR/detectorMap $DRP_PFS_DATA_DIR/detectorMap/detectorMap-PFS-F.ecsv --transfer copy
     makePfsDefects --lam
     butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
 
