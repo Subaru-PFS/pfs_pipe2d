@@ -3,7 +3,6 @@
 DATADIR="/projects/HSC/PFS/weekly/weekly-20230925"
 RERUN="weekly"
 CORES=10
-CLEANUP=true
 DEVELOPER=false
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
@@ -13,26 +12,18 @@ usage() {
     echo "    -d <DATADIR> : path to raw data (default: ${DATADIR})" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: ${RERUN})" 1>&2
     echo "    -c <CORES> : number of cores to use (default: ${CORES})" 1>&2
-    echo "    -n : don't cleanup temporary products" 1>&2
-    echo "    -D : developer mode (--clobber-config --no-versions)" 1>&2
     echo "    WORKDIR : directory to use for work"
     echo "" 1>&2
     exit 1
 }
 
-while getopts "c:d:Dnr:" opt; do
+while getopts "c:d:r:h" opt; do
     case "${opt}" in
         c)
             CORES=${OPTARG}
             ;;
         d)
             DATADIR=${OPTARG}
-            ;;
-        D)
-            DEVELOPER=true
-            ;;
-        n)
-            CLEANUP=false
             ;;
         r)
             RERUN=${OPTARG}
@@ -55,86 +46,70 @@ HERE=$(unset CDPATH && cd "$(dirname "$0")" && pwd)
 
 set -evx
 
-# Set up the data repo and ingest all data
-mkdir -p $WORKDIR
-mkdir -p $WORKDIR/CALIB
-echo "lsst.obs.pfs.PfsMapper" > $WORKDIR/_mapper
+# Prepare the data
+mkdir -p $WORKDIR/raw
+cp $DATADIR/PFF[AB]*.fits $WORKDIR/raw
+cp $DATADIR/pfsConfig-*.fits $WORKDIR/raw
+chmod -R u+w $WORKDIR/raw
+checkPfsRawHeaders.py --fix $WORKDIR/raw/PFF[AB]*.fits
+checkPfsConfigHeaders.py --fix $WORKDIR/raw/pfsConfig-*.fits
 
-ingestPfsImages.py $WORKDIR $DATADIR/PFF[AB]*.fits
-
-# Ingest defects
+# Setup the data repo
+DATASTORE=$WORKDIR/repo
+butler create $DATASTORE --seed-config $OBS_PFS_DIR/gen3/butler.yaml --dimension-config $OBS_PFS_DIR/gen3/dimensions.yaml --override
+butler register-instrument $DATASTORE lsst.obs.pfs.PfsSimulator
+butler register-skymap $DATASTORE -C $OBS_PFS_DIR/gen3/skymap_rings.py -c name=skymap
+butler ingest-raws $DATASTORE $WORKDIR/raw/PFF[AB]*.fits --ingest-task lsst.obs.pfs.gen3.PfsRawIngestTask --transfer link --fail-fast
+ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig skymap $WORKDIR/raw/pfsConfig*.fits --transfer link
+butler ingest-files $DATASTORE detectorMap_bootstrap PFS-F/detectorMap/bootstrap --prefix $DRP_PFS_DATA_DIR/detectorMap $DRP_PFS_DATA_DIR/detectorMap/detectorMap-PFS-F.ecsv --transfer copy
 makePfsDefects --lam
-ingestCuratedCalibs.py $WORKDIR --calib $WORKDIR/CALIB $DRP_PFS_DATA_DIR/curated/pfs/defects
+butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
 
-# Build calibs
-develFlag=""
-cleanFlag=""
-( $DEVELOPER ) && develFlag="--devel"
-( $CLEANUP ) && cleanFlag="--clean"
+# Calibs
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/bias -p $DRP_STELLA_DIR/pipelines/bias.yaml -d "instrument='PFS-F' AND exposure.target_name = 'BIAS' AND arm IN ('b', 'r', 'm')" --fail-fast -c isr:doCrosstalk=False
+butler certify-calibrations $DATASTORE "$RERUN"/bias PFS-F/calib bias --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-# Calibs for brn
-generateCommands.py $WORKDIR \
-    $HERE/../examples/weekly.yaml \
-    $WORKDIR/calibs_for_brn.sh \
-    --rerun=$RERUN/calib/brn \
-    --init --blocks=calibs_for_brn \
-    -j $CORES $develFlag $cleanFlag
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/dark -p '$DRP_STELLA_DIR/pipelines/dark.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'DARK'" --fail-fast -c isr:doCrosstalk=False
+butler certify-calibrations $DATASTORE "$RERUN"/dark PFS-F/calib dark --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-sh $WORKDIR/calibs_for_brn.sh
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/flat -p '$DRP_STELLA_DIR/pipelines/flat.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'FLAT' AND arm != 'm'" --fail-fast -c isr:doCrosstalk=False
+butler certify-calibrations $DATASTORE "$RERUN"/flat PFS-F/calib fiberFlat --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-# Make fake flat for m1
-# These used to be copied automatically from the r flat, but that's not correct.
-# We don't have the simulated data to generate it from, so we'll just make a fake one.
-makeFakeFlat.py $WORKDIR
-ingestPfsCalibs.py $WORKDIR --calib $WORKDIR/CALIB --validity 10000 $WORKDIR/pfsFakeFlat-m1.fits
+# Make a fake flat for arm=m, because we don't have the data to create one properly
+mkdir -p $WORKDIR/flats
+makeFakeFlat.py $WORKDIR/flats
+cat <<EOF > $WORKDIR/flats/flats.ecsv
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: filename, datatype: string}
+# - {name: instrument, datatype: string}
+# - {name: arm, datatype: string}
+# - {name: spectrograph, datatype: int64}
+# - {name: detector, datatype: int64}
+# schema: astropy-2.0
+filename instrument arm spectrograph detector
+$WORKDIR/flats/pfsFakeFlat-m1.fits PFS-F m 1 -1
+EOF
+butler ingest-files $DATASTORE fiberFlat PFS-F/flat $WORKDIR/flats/flats.ecsv --transfer copy
+butler certify-calibrations $DATASTORE PFS-F/flat PFS-F/calib fiberFlat --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-# Calibs for m
-generateCommands.py $WORKDIR \
-    $HERE/../examples/weekly.yaml \
-    $WORKDIR/calibs_for_m.sh \
-    --rerun=$RERUN/calib/m \
-    --blocks=calibs_for_m \
-    -j $CORES $develFlag $cleanFlag
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/detectorMap/bootstrap,PFS-F/calib -o "$RERUN"/fiberProfiles -p '$DRP_STELLA_DIR/pipelines/fiberProfiles.yaml' -d "instrument='PFS-F' AND exposure.target_name IN ('FLAT_ODD', 'FLAT_EVEN')" -c measureDetectorMap:useBootstrapDetectorMap=True -c isr:doCrosstalk=False --fail-fast
+butler certify-calibrations $DATASTORE "$RERUN"/fiberProfiles PFS-F/calib fiberProfiles --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-sh $WORKDIR/calibs_for_m.sh
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/detectorMap/bootstrap,PFS-F/calib -o "$RERUN"/detectorMap -p '$DRP_STELLA_DIR/pipelines/detectorMap.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'ARC'" -c measureCentroids:useBootstrapDetectorMap=True -c fitDetectorMap:useBootstrapDetectorMap=True -c fitDetectorMap:fitDetectorMap.doSlitOffsets=True -c isr:doCrosstalk=False --fail-fast
+butler certify-calibrations $DATASTORE "$RERUN"/detectorMap PFS-F/calib detectorMap_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-# Run calibs over again just with for the arcs: we want to preserve their outputs so we can test the results
-generateCommands.py $WORKDIR \
-    $HERE/../examples/weekly.yaml \
-    $WORKDIR/arc_brn.sh \
-    --rerun=$RERUN/calib/brn \
-    --blocks=arc_brn \
-    -j $CORES $develFlag
+# Single exposure pipeline
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/reduceExposure -p '$DRP_STELLA_DIR/pipelines/reduceExposure.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast -c isr:doCrosstalk=False -c mergeArms:doApplyFiberNorms=False
 
-sh $WORKDIR/arc_brn.sh
+# Science pipeline
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib,skymaps,"$RERUN"/reduceExposure --skip-existing-in "$RERUN"/reduceExposure -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast -c isr:doCrosstalk=False -c fitFluxCal:fitFocalPlane.polyOrder=0 -c mergeArms:doApplyFiberNorms=False -c coaddSpectra:doApplyFiberNorms=False
 
-generateCommands.py $WORKDIR \
-    $HERE/../examples/weekly.yaml \
-    $WORKDIR/arc_m.sh \
-    --rerun=$RERUN/calib/m \
-    --blocks=arc_m \
-    -j $CORES $develFlag
+# Exports products
+exportPfsProducts.py -b $DATASTORE -i PFS-F/raw/pfsConfig,"$RERUN"/reduceExposure,"$RERUN"/science -o export
 
-sh $WORKDIR/arc_m.sh
-
-# Run the pipeline on brn
-generateCommands.py $WORKDIR \
-    $HERE/../examples/weekly.yaml \
-    $WORKDIR/pipeline_on_brn.sh \
-    --rerun=$RERUN/pipeline/brn \
-    --blocks=pipeline_on_brn \
-    -j $CORES $develFlag
-
-sh $WORKDIR/pipeline_on_brn.sh
-
-# Run the pipeline on bmn
-generateCommands.py $WORKDIR \
-    $HERE/../examples/weekly.yaml \
-    $WORKDIR/pipeline_on_bmn.sh \
-    --rerun=$RERUN/pipeline/bmn \
-    --blocks=pipeline_on_bmn \
-    -j $CORES $develFlag
-
-sh $WORKDIR/pipeline_on_bmn.sh
-
-$HERE/test_weekly.py --raw=$DATADIR --rerun=$WORKDIR/rerun/$RERUN
+# Disable test until it's converted to use Gen3.
+if false; then
+    $HERE/test_weekly.py --raw=$DATADIR --rerun=$WORKDIR/rerun/$RERUN
+fi
