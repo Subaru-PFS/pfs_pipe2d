@@ -14,15 +14,13 @@ fi
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] [-C] [-2] [-3] <PREFIX>" 1>&2
+    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] <PREFIX>" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : branch of drp_stella_data to use" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: 'integration')" 1>&2
     echo "    -d <DIRNAME> : directory name to give data repo (default: 'INTEGRATION')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: 1)" 1>&2
     echo "    -G : don't clone or update from git" 1>&2
-    echo "    -n : don't cleanup temporary products" 1>&2
-    echo "    -C : don't create calibs" 1>&2
     echo "    <PREFIX> : directory under which to operate" 1>&2
     echo "" 1>&2
     exit 1
@@ -34,9 +32,7 @@ RERUN="integration"  # Rerun name to use
 TARGET="INTEGRATION"  # Directory name to give data repo
 CORES=1  # Number of cores to use
 USE_GIT=true # checkout/update from git
-CLEANUP=true  # Clean temporary products?
-BUILD_CALIBS=true  # Build calibs?
-while getopts ":b:c:Cd:Gnr:" opt; do
+while getopts ":b:c:d:Gr:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
@@ -44,17 +40,11 @@ while getopts ":b:c:Cd:Gnr:" opt; do
         c)
             CORES=${OPTARG}
             ;;
-        C)
-            BUILD_CALIBS=false
-            ;;
         d)
             TARGET=${OPTARG}
             ;;
         G)
             USE_GIT=false
-            ;;
-        n)
-            CLEANUP=false
             ;;
         r)
             RERUN=${OPTARG}
