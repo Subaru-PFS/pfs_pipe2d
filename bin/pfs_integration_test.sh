@@ -14,15 +14,13 @@ fi
 usage() {
     echo "Exercise the PFS 2D pipeline code" 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] [-n] [-C] [-2] [-3] <PREFIX>" 1>&2
+    echo "Usage: $0 [-b <BRANCH>] [-r <RERUN>] [-d DIRNAME] [-c CORES] <PREFIX>" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : branch of drp_stella_data to use" 1>&2
     echo "    -r <RERUN> : rerun name to use (default: 'integration')" 1>&2
     echo "    -d <DIRNAME> : directory name to give data repo (default: 'INTEGRATION')" 1>&2
     echo "    -c <CORES> : number of cores to use (default: 1)" 1>&2
     echo "    -G : don't clone or update from git" 1>&2
-    echo "    -n : don't cleanup temporary products" 1>&2
-    echo "    -C : don't create calibs" 1>&2
     echo "    <PREFIX> : directory under which to operate" 1>&2
     echo "" 1>&2
     exit 1
@@ -34,9 +32,7 @@ RERUN="integration"  # Rerun name to use
 TARGET="INTEGRATION"  # Directory name to give data repo
 CORES=1  # Number of cores to use
 USE_GIT=true # checkout/update from git
-CLEANUP=true  # Clean temporary products?
-BUILD_CALIBS=true  # Build calibs?
-while getopts ":b:c:Cd:Gnr:" opt; do
+while getopts ":b:c:d:Gr:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
@@ -44,17 +40,11 @@ while getopts ":b:c:Cd:Gnr:" opt; do
         c)
             CORES=${OPTARG}
             ;;
-        C)
-            BUILD_CALIBS=false
-            ;;
         d)
             TARGET=${OPTARG}
             ;;
         G)
             USE_GIT=false
-            ;;
-        n)
-            CLEANUP=false
             ;;
         r)
             RERUN=${OPTARG}
@@ -141,11 +131,14 @@ certifyDetectorMaps.py INTEGRATION $RERUN/detectorMap PFS-F/calib --instrument P
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/fiberProfiles -p '$DRP_STELLA_DIR/pipelines/fiberProfiles.yaml' -d "instrument='PFS-F' AND exposure.target_name IN ('FLAT_ODD', 'FLAT_EVEN')" -c isr:doCrosstalk=False --fail-fast
 butler certify-calibrations $DATASTORE "$RERUN"/fiberProfiles PFS-F/calib fiberProfiles --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/fiberNorms -p '$DRP_STELLA_DIR/pipelines/fiberNorms.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'FLAT' AND dither = 0.0" -c isr:doCrosstalk=False --fail-fast
+butler certify-calibrations $DATASTORE "$RERUN"/fiberNorms PFS-F/calib fiberNorms_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
+
 # Single exposure pipeline
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/reduceExposure -p '$DRP_STELLA_DIR/pipelines/reduceExposure.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast -c isr:doCrosstalk=False -c mergeArms:doApplyFiberNorms=False
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/reduceExposure -p '$DRP_STELLA_DIR/pipelines/reduceExposure.yaml' -d "instrument='PFS-F' AND (exposure.target_name = 'OBJECT' OR (exposure.target_name = 'FLAT' AND dither = 0.0))" --fail-fast -c isr:doCrosstalk=False
 
 # Science pipeline
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib,skymaps -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast -c isr:doCrosstalk=False -c fitFluxCal:fitFocalPlane.polyOrder=0 -c mergeArms:doApplyFiberNorms=False -c coaddSpectra:doApplyFiberNorms=False
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib,skymaps -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast -c isr:doCrosstalk=False -c fitFluxCal:fitFocalPlane.polyOrder=0
 
 # Exports products
 exportPfsProducts.py -b $DATASTORE -i PFS-F/raw/pfsConfig,"$RERUN"/science -o ${TARGET}_export
