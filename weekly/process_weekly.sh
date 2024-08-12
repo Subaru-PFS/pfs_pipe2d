@@ -63,6 +63,9 @@ ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig $WOR
 makePfsDefects --lam
 butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
 
+defineCombination.py $DATASTORE PFS-F object --where "exposure.target_name = 'OBJECT'"
+defineCombination.py $DATASTORE PFS-F quartz --where "exposure.target_name = 'FLAT' AND dither = 0.0"
+
 # Calibs
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/bias -p $DRP_STELLA_DIR/pipelines/bias.yaml -d "instrument='PFS-F' AND exposure.target_name = 'BIAS' AND arm IN ('b', 'r', 'm')" --fail-fast -c isr:doCrosstalk=False
 butler certify-calibrations $DATASTORE "$RERUN"/bias PFS-F/calib bias --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
@@ -109,10 +112,10 @@ pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.
 butler certify-calibrations $DATASTORE "$RERUN"/fiberNorms PFS-F/calib fiberNorms_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 # Single exposure pipeline
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/reduceExposure -p '$DRP_STELLA_DIR/pipelines/reduceExposure.yaml' -d "instrument='PFS-F' AND (exposure.target_name = 'OBJECT' OR (exposure.target_name = 'FLAT' AND dither = 0.0))" --fail-fast -c isr:doCrosstalk=False
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/reduceExposure -p '$DRP_STELLA_DIR/pipelines/reduceExposure.yaml' -d "combination IN ('object', 'quartz')" --fail-fast -c isr:doCrosstalk=False
 
 # Science pipeline
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib,"$RERUN"/reduceExposure --skip-existing-in "$RERUN"/reduceExposure -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'OBJECT'" --fail-fast -c isr:doCrosstalk=False -c fitFluxCal:fitFocalPlane.polyOrder=0
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib,"$RERUN"/reduceExposure --skip-existing-in "$RERUN"/reduceExposure -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'object'" --fail-fast -c isr:doCrosstalk=False -c fitFluxCal:fitFocalPlane.polyOrder=0
 
 # Exports products
 exportPfsProducts.py -b $DATASTORE -i PFS-F/raw/pfsConfig,"$RERUN"/reduceExposure,"$RERUN"/science -o export
