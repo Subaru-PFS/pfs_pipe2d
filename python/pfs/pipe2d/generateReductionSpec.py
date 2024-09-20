@@ -819,7 +819,7 @@ def splitSources(sources: Iterable[FileId], chunkSize: int) -> List[List[FileId]
                 numToPop = quotient
             chunks.append(seq[:numToPop])
             seq = seq[numToPop:]
-        assert(len(seq) == 0)
+        assert len(seq) == 0
 
     return chunks
 
