@@ -1,4 +1,4 @@
-FROM centos:7
+FROM almalinux:9
 
 LABEL description="LSST packages for Subaru PFS 2D pipeline"
 LABEL name="paprice/pfs_lsst"
