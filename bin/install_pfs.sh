@@ -84,7 +84,7 @@ bash $HERE/bin/install_lsst.sh ${lsst_args}
 . $PREFIX/loadLSST.bash
 setup_args=""
 [ -n "$LSST_VERSION" ] && setup_args+="-t $LSST_VERSION"
-setup pipe_drivers ${setup_args}
+setup cp_pipe ${setup_args}
 export -f setup
 
 [ -e $PREFIX/pfs ] && rm -rf $PREFIX/pfs  # Want to regenerate PFS-specific packages every time

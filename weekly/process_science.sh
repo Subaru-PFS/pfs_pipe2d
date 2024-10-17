@@ -13,7 +13,7 @@ usage() {
     echo "    -r <RERUN> : rerun name to use (default: ${RERUN})" 1>&2
     echo "    -c <CORES> : number of cores to use (default: ${CORES})" 1>&2
     echo "    -D : developer mode (--clobber-config --no-versions)" 1>&2
-    echo "    WORKDIR : directory to use for work (contains existing data repo)" 1>&2
+    echo "    WORKDIR : directory to use for work (contains existing 'repo')" 1>&2
     echo "" 1>&2
     exit 1
 }
@@ -42,8 +42,9 @@ WORKDIR=$1; shift
 if [ -z "$WORKDIR" ] || [ -n "$1" ]; then
     usage
 fi
-if [ ! -e "$WORKDIR/_mapper" ]; then
-    echo "Working directory $WORKDIR doesn't appear to be a data repository (no _mapper file)"
+DATASTORE=$WORKDIR/repo
+if [ ! -e "$DATASTORE/gen3.sqlite3" ]; then
+    echo "Working directory $WORKDIR doesn't appear to be a data repository (no gen3.sqlite3 file)"
     usage
 fi
 if [ ! -d "$DATADIR" ]; then
@@ -58,14 +59,17 @@ develFlag=""
 set -evx
 
 # Ingest the science data
-ingestPfsImages.py $WORKDIR $DATADIR/PFF[AB]*.fits
+mkdir -p $WORKDIR/rawScience
+cp $DATADIR/PFF[AB]*.fits $WORKDIR/rawScience
+cp $DATADIR/pfsConfig-*.fits $WORKDIR/rawScience
+chmod -R u+w $WORKDIR/rawScience
+
+checkPfsRawHeaders.py --fix $WORKDIR/rawScience/PFF[AB]*.fits
+checkPfsConfigHeaders.py --fix $WORKDIR/rawScience/pfsConfig-*.fits
+butler ingest-raws $DATASTORE $WORKDIR/rawScience/PFF[AB]*.fits --ingest-task lsst.obs.pfs.gen3.PfsRawIngestTask --transfer copy --fail-fast
+ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig $WORKDIR/rawScience/pfsConfig*.fits --transfer link
 
 # Run the pipeline
-generateCommands.py $WORKDIR \
-    $HERE/../examples/science.yaml \
-    $WORKDIR/science.sh \
-    --rerun=$RERUN \
-    --blocks brn bmn \
-    -j $CORES $develFlag
-
-sh $WORKDIR/science.sh
+defineCombination.py $DATASTORE PFS-F science 1000 1001 1002 1003 1004 1005 1006 1007
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN" -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'science'" --fail-fast -c isr:doCrosstalk=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c fitFluxCal:fitFocalPlane.polyOrder=0
+exportPfsProducts.py -b $DATASTORE -i PFS-F/raw/pfsConfig,"$RERUN" -o export --exposures "combination = 'science'"
