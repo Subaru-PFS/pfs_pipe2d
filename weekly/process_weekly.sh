@@ -63,17 +63,17 @@ ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig $WOR
 makePfsDefects --lam
 butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
 
-defineCombination.py $DATASTORE PFS-F object --where "exposure.target_name = 'OBJECT'"
-defineCombination.py $DATASTORE PFS-F quartz --where "exposure.target_name = 'FLAT' AND dither = 0.0"
+defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'"
+defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0.0"
 
 # Calibs
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/bias -p $DRP_STELLA_DIR/pipelines/bias.yaml -d "instrument='PFS-F' AND exposure.target_name = 'BIAS' AND arm IN ('b', 'r', 'm')" --fail-fast -c isr:doCrosstalk=False
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/bias -p $DRP_STELLA_DIR/pipelines/bias.yaml -d "instrument='PFS-F' AND visit.target_name = 'BIAS' AND arm IN ('b', 'r', 'm')" --fail-fast -c isr:doCrosstalk=False
 butler certify-calibrations $DATASTORE "$RERUN"/bias PFS-F/calib bias --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/dark -p '$DRP_STELLA_DIR/pipelines/dark.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'DARK'" --fail-fast -c isr:doCrosstalk=False
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/dark -p '$DRP_STELLA_DIR/pipelines/dark.yaml' -d "instrument='PFS-F' AND visit.target_name = 'DARK'" --fail-fast -c isr:doCrosstalk=False
 butler certify-calibrations $DATASTORE "$RERUN"/dark PFS-F/calib dark --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/flat -p '$DRP_STELLA_DIR/pipelines/flat.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'FLAT' AND arm != 'm'" --fail-fast -c isr:doCrosstalk=False
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/calib -o "$RERUN"/flat -p '$DRP_STELLA_DIR/pipelines/flat.yaml' -d "instrument='PFS-F' AND visit.target_name = 'FLAT' AND arm != 'm'" --fail-fast -c isr:doCrosstalk=False
 butler certify-calibrations $DATASTORE "$RERUN"/flat PFS-F/calib fiberFlat --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 # Make a fake flat for arm=m, because we don't have the data to create one properly
@@ -95,10 +95,10 @@ EOF
 butler ingest-files $DATASTORE fiberFlat PFS-F/flat $WORKDIR/flats/flats.ecsv --transfer copy
 butler certify-calibrations $DATASTORE PFS-F/flat PFS-F/calib fiberFlat --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-pipetask --log-level .=INFO run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/bootstrap -p '$DRP_STELLA_DIR/pipelines/bootstrap.yaml' -d "instrument='PFS-F' AND (exposure IN (20, 42) OR (arm = 'm' AND exposure IN (23, 43)))" --fail-fast -c isr:doCrosstalk=False -c bootstrap:profiles.doBlindFind=False -c bootstrap:profiles.associationDepth=70 -c bootstrap:profiles.findThreshold=5000 -c bootstrap:profiles.profileRadius=2 -c bootstrap:profiles.profileSwath=2500 -c bootstrap:profiles.profileOversample=3
+pipetask --log-level .=INFO run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/bootstrap -p '$DRP_STELLA_DIR/pipelines/bootstrap.yaml' -d "instrument='PFS-F' AND (visit IN (20, 42) OR (arm = 'm' AND visit IN (23, 43)))" --fail-fast -c isr:doCrosstalk=False -c bootstrap:profiles.doBlindFind=False -c bootstrap:profiles.associationDepth=70 -c bootstrap:profiles.findThreshold=5000 -c bootstrap:profiles.profileRadius=2 -c bootstrap:profiles.profileSwath=2500 -c bootstrap:profiles.profileOversample=3
 butler certify-calibrations $DATASTORE "$RERUN"/bootstrap PFS-F/detectorMap/bootstrap detectorMap_bootstrap --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/detectorMap/bootstrap,PFS-F/calib -o "$RERUN"/detectorMap -p '$DRP_STELLA_DIR/pipelines/detectorMap.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'ARC'" -c fitDetectorMap:fitDetectorMap.doSlitOffsets=True -c isr:doCrosstalk=False -c measureCentroids:connections.calibDetectorMap=detectorMap_bootstrap --fail-fast
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/detectorMap/bootstrap,PFS-F/calib -o "$RERUN"/detectorMap -p '$DRP_STELLA_DIR/pipelines/detectorMap.yaml' -d "instrument='PFS-F' AND visit.target_name = 'ARC'" -c fitDetectorMap:fitDetectorMap.doSlitOffsets=True -c isr:doCrosstalk=False -c measureCentroids:connections.calibDetectorMap=detectorMap_bootstrap --fail-fast
 certifyDetectorMaps.py $DATASTORE "$RERUN"/detectorMap PFS-F/calib --instrument PFS-F --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 defineFiberProfilesInputs.py $DATASTORE PFS-F weeklyProfiles_brn --bright 38 --bright 40
@@ -108,7 +108,7 @@ butler certify-calibrations $DATASTORE "$RERUN"/fiberProfiles PFS-F/calib fiberP
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/fiberProfilesInputs,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/fiberProfiles -p '$DRP_STELLA_DIR/pipelines/fitFiberProfiles.yaml' -d "profiles_run = 'weeklyProfiles_m' AND arm = 'm'" -c fitProfiles:profiles.profileSwath=2000 -c fitProfiles:profiles.profileOversample=3 -c mergeProfiles:fiberInfluence=0 --fail-fast
 butler certify-calibrations $DATASTORE "$RERUN"/fiberProfiles PFS-F/calib fiberProfiles --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/fiberNorms -p '$DRP_STELLA_DIR/pipelines/fiberNorms.yaml' -d "instrument='PFS-F' AND exposure.target_name = 'FLAT' AND dither = 0.0" -c isr:doCrosstalk=False --fail-fast
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/fiberNorms -p '$DRP_STELLA_DIR/pipelines/fiberNorms.yaml' -d "instrument='PFS-F' AND visit.target_name = 'FLAT' AND dither = 0.0" -c isr:doCrosstalk=False --fail-fast
 butler certify-calibrations $DATASTORE "$RERUN"/fiberNorms PFS-F/calib fiberNorms_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 # Single exposure pipeline
