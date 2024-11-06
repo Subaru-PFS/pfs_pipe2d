@@ -70,6 +70,10 @@ butler ingest-raws $DATASTORE $WORKDIR/rawScience/PFF[AB]*.fits --ingest-task ls
 ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig $WORKDIR/rawScience/pfsConfig*.fits --transfer link
 
 # Run the pipeline
+defineVisitGroup.py $DATASTORE PFS-F 1000 1001  # first design, brn
+defineVisitGroup.py $DATASTORE PFS-F 1002 1003  # first design, bmn
+defineVisitGroup.py $DATASTORE PFS-F 1004 1005  # second design, brn
+defineVisitGroup.py $DATASTORE PFS-F 1006 1007  # second design, bmn
 defineCombination.py $DATASTORE PFS-F science 1000 1001 1002 1003 1004 1005 1006 1007
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/all,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN" -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'science'" --fail-fast -c isr:doCrosstalk=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c fitFluxCal:fitFocalPlane.polyOrder=0
 exportPfsProducts.py -b $DATASTORE -i PFS-F/raw/pfsConfig,"$RERUN" -o export --visits "combination = 'science'"
