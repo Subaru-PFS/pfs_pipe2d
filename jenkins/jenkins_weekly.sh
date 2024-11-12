@@ -1,7 +1,6 @@
 #!/bin/bash
 
 WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
-REGULAR_STACK=/scratch/gpfs/HSC/PFS/stack/current/stack/current  # Regular EUPS stack; for fluxmodeldata
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 [ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
@@ -95,7 +94,7 @@ $HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # C
 $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
-setup -Z $REGULAR_STACK -k fluxmodeldata
+setup -jr /scratch/gpfs/HSC/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
 
 # Run the weekly production test
 state="test"
