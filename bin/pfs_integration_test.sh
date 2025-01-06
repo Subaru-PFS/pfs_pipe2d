@@ -111,10 +111,10 @@ ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig simu
 makePfsDefects --lam
 butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
 
-defineVisitGroup.py $DATASTORE PFS-F 24  # pfsDesignId=1, long exposure
-defineVisitGroup.py $DATASTORE PFS-F 25  # pfsDesignId=2, long exposure
-defineVisitGroup.py $DATASTORE PFS-F 26  # pfsDesignId=1, short exposure
-defineVisitGroup.py $DATASTORE PFS-F 27  # pfsDesignId=2, short exposure
+defineVisitGroup.py $DATASTORE PFS-F 24 --collection PFS-F/raw/pfsConfig  # pfsDesignId=1, long exposure
+defineVisitGroup.py $DATASTORE PFS-F 25 --collection PFS-F/raw/pfsConfig  # pfsDesignId=2, long exposure
+defineVisitGroup.py $DATASTORE PFS-F 26 --collection PFS-F/raw/pfsConfig  # pfsDesignId=1, short exposure
+defineVisitGroup.py $DATASTORE PFS-F 27 --collection PFS-F/raw/pfsConfig  # pfsDesignId=2, short exposure
 defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'"
 defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0.0"
 

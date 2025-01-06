@@ -63,10 +63,10 @@ ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig $WOR
 makePfsDefects --lam
 butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
 
-defineVisitGroup.py $DATASTORE PFS-F 50 51 52  # pfsDesignId=1, brn
-defineVisitGroup.py $DATASTORE PFS-F 53 54 55  # pfsDesignId=1, bmn
-defineVisitGroup.py $DATASTORE PFS-F 56 57  # pfsDesignId=1, brn
-defineVisitGroup.py $DATASTORE PFS-F 58 59  # pfsDesignId=1, bmn
+defineVisitGroup.py $DATASTORE PFS-F 50 51 52 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, brn
+defineVisitGroup.py $DATASTORE PFS-F 53 54 55 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, bmn
+defineVisitGroup.py $DATASTORE PFS-F 56 57 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, brn
+defineVisitGroup.py $DATASTORE PFS-F 58 59 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, bmn
 # 60 and 61 are single exposures (short exposure time with pfsDesignId=1, brn and bmn).
 
 defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'"
