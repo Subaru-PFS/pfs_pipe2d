@@ -109,14 +109,14 @@ butler register-instrument $DATASTORE lsst.obs.pfs.PfsSimulator
 butler ingest-raws $DATASTORE $drp_stella_data/raw/PFFA*.fits --ingest-task lsst.obs.pfs.gen3.PfsRawIngestTask --transfer link --fail-fast
 ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig simulator $drp_stella_data/raw/pfsConfig*.fits --transfer link
 makePfsDefects --lam
-butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator
+butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator --collection PFS-F/calib
 
 defineVisitGroup.py $DATASTORE PFS-F 24 --collection PFS-F/raw/pfsConfig  # pfsDesignId=1, long exposure
 defineVisitGroup.py $DATASTORE PFS-F 25 --collection PFS-F/raw/pfsConfig  # pfsDesignId=2, long exposure
 defineVisitGroup.py $DATASTORE PFS-F 26 --collection PFS-F/raw/pfsConfig  # pfsDesignId=1, short exposure
 defineVisitGroup.py $DATASTORE PFS-F 27 --collection PFS-F/raw/pfsConfig  # pfsDesignId=2, short exposure
 defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'"
-defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0.0"
+defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0"
 
 # Calibs
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/calib -o "$RERUN"/bias -p $DRP_STELLA_DIR/pipelines/bias.yaml -d "instrument='PFS-F' AND visit.target_name = 'BIAS'" --fail-fast -c isr:doCrosstalk=False
@@ -140,7 +140,7 @@ pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/measureFiberProfiles -p '$DRP_STELLA_DIR/pipelines/measureFiberProfiles.yaml' -d "instrument='PFS-F' AND visit.target_name IN ('FLAT_ODD', 'FLAT_EVEN')" -c isr:doCrosstalk=False --fail-fast
 butler certify-calibrations $DATASTORE "$RERUN"/fitFiberProfiles PFS-F/calib fiberProfiles --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/fiberNorms -p '$DRP_STELLA_DIR/pipelines/fiberNorms.yaml' -d "instrument='PFS-F' AND visit.target_name = 'FLAT' AND dither = 0.0" -c isr:doCrosstalk=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False --fail-fast
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/fiberNorms -p '$DRP_STELLA_DIR/pipelines/fiberNorms.yaml' -d "instrument='PFS-F' AND visit.target_name = 'FLAT' AND dither = 0" -c isr:doCrosstalk=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False --fail-fast
 butler certify-calibrations $DATASTORE "$RERUN"/fiberNorms PFS-F/calib fiberNorms_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 # Single exposure pipeline for observing
