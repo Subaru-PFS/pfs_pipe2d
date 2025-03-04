@@ -1,6 +1,7 @@
 #!/bin/bash
 
-WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
+WORKDIR=/scratch/gpfs/RUBIN/PFS/jenkins/weekly/$(date --iso-8601)
+FLUXCAL=/scratch/gpfs/RUBIN/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 [ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
@@ -94,7 +95,7 @@ $HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # C
 $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
-setup -jr /scratch/gpfs/HSC/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
+setup -jr $FLUXCAL
 
 # Run the weekly production test
 state="test"

@@ -7,8 +7,9 @@
 # The following environment variables are set by Jenkins for all runs:
 # BUILD_NUMBER: The current build number
 
-STACK_DIR=/scratch/gpfs/HSC/PFS/stack/current
-WORKDIR=/scratch/pprice/jenkins/integrationTest/${BUILD_NUMBER}
+STACK_DIR=/scratch/gpfs/RUBIN/PFS/stack-20250303
+WORKDIR=/scratch/gpfs/RUBIN/PFS/jenkins/integrationTest/${BUILD_NUMBER}
+FLUXCAL=/scratch/gpfs/RUBIN/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 LOG_NAME=integration_${BUILD_NUMBER}
@@ -113,6 +114,7 @@ set -ev
 # Build the pipeline
 state="build"
 . $STACK_DIR/loadLSST.bash
+setup cp_pipe
 export SCONSFLAGS="-j $CORES"
 build_package Subaru-PFS/datamodel $BRANCH "$TAG"
 build_package Subaru-PFS/pfs_utils $BRANCH "$TAG"
@@ -120,7 +122,7 @@ build_package Subaru-PFS/obs_pfs $BRANCH "$TAG"
 build_package Subaru-PFS/drp_pfs_data $BRANCH "$TAG"
 build_package Subaru-PFS/drp_stella $BRANCH "$TAG"
 build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
-setup -j fluxmodeldata
+setup -jr $FLUXCAL
 
 # Run the integration test
 state="test"
