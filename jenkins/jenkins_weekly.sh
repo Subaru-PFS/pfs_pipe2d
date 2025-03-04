@@ -91,7 +91,14 @@ mkdir -p $WORKDIR/build
 export SCONSFLAGS="-j $CORES"
 export OMP_NUM_THREADS=1
 export PYTHONWARNINGS="ignore:Gen2 Butler has been deprecated:FutureWarning:"
-$HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # Create release
+
+
+# Princeton's Jenkins is no longer responsible for tagging and releasing the pipeline
+if ( false ); then
+    $HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # Create release
+fi
+
+
 $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
