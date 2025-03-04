@@ -104,11 +104,6 @@ echo "Running integration test with BRANCH=$BRANCH"
 ( type eups && unsetup eups ) || echo "No eups in environment."
 unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
 
-# Need these on tiger to get the right environment
-. /etc/profile  # Get "module"
-module load rh/devtoolset/6  # Get modern compiler
-module load git  # For git-lfs
-
 set -ev
 
 # Build the pipeline

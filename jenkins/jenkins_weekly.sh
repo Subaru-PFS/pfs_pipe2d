@@ -80,7 +80,7 @@ unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHO
 
 # Need these on tiger to get the right environment
 . /etc/profile  # Get "module"
-module load git  # For git-lfs
+module load module-git  # For git-lfs
 module load anaconda3  # For python3 with 'requests', for release_pipe2d.py
 
 set -ev
