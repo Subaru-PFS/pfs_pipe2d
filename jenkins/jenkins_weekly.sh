@@ -90,7 +90,6 @@ state="build"
 mkdir -p $WORKDIR/build
 export SCONSFLAGS="-j $CORES"
 export OMP_NUM_THREADS=1
-export PYTHONWARNINGS="ignore:Gen2 Butler has been deprecated:FutureWarning:"
 
 
 # Princeton's Jenkins is no longer responsible for tagging and releasing the pipeline
