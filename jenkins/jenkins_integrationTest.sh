@@ -7,8 +7,9 @@
 # The following environment variables are set by Jenkins for all runs:
 # BUILD_NUMBER: The current build number
 
-STACK_DIR=/scratch/gpfs/HSC/PFS/stack/current
-WORKDIR=/scratch/pprice/jenkins/integrationTest/${BUILD_NUMBER}
+STACK_DIR=/scratch/gpfs/RUBIN/PFS/stack-20250303
+WORKDIR=/scratch/gpfs/RUBIN/PFS/jenkins/integrationTest/${BUILD_NUMBER}
+FLUXCAL=/scratch/gpfs/RUBIN/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 LOG_NAME=integration_${BUILD_NUMBER}
@@ -52,6 +53,7 @@ notify_on_exit () {
 # https://stackoverflow.com/a/20564208/834250
 
 exec 3>&1 4>&2 1> >(tee -a $LOG_FILE >&3) 2> >(tee -a $LOG_FILE >&4)
+export CLEANUP=
 trap 'cleanup' INT QUIT TERM EXIT
 
 get_pids_of_ppid() {
@@ -69,6 +71,10 @@ cleanup() {
     # This ensures no zombies get left around (e.g., logging).
     local current_pid element
     local pids=( "$$" )
+
+    # Don't allow this to be called repeatedly
+    [[ -n "$CLEANUP" ]] && exit 0
+    export CLEANUP="done"
 
     chmod -R g+rw $WORKDIR
     notify_on_exit
@@ -103,16 +109,12 @@ echo "Running integration test with BRANCH=$BRANCH"
 ( type eups && unsetup eups ) || echo "No eups in environment."
 unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHON_EXE CONDA_SHLVL
 
-# Need these on tiger to get the right environment
-. /etc/profile  # Get "module"
-module load rh/devtoolset/6  # Get modern compiler
-module load git  # For git-lfs
-
-set -ev
+set -evx
 
 # Build the pipeline
 state="build"
 . $STACK_DIR/loadLSST.bash
+setup cp_pipe
 export SCONSFLAGS="-j $CORES"
 build_package Subaru-PFS/datamodel $BRANCH "$TAG"
 build_package Subaru-PFS/pfs_utils $BRANCH "$TAG"
@@ -120,7 +122,7 @@ build_package Subaru-PFS/obs_pfs $BRANCH "$TAG"
 build_package Subaru-PFS/drp_pfs_data $BRANCH "$TAG"
 build_package Subaru-PFS/drp_stella $BRANCH "$TAG"
 build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
-setup -j fluxmodeldata
+setup -jr $FLUXCAL
 
 # Run the integration test
 state="test"

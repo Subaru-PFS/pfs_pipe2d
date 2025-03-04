@@ -1,6 +1,7 @@
 #!/bin/bash
 
-WORKDIR=/scratch/pprice/jenkins/weekly/$(date --iso-8601)
+WORKDIR=/scratch/gpfs/RUBIN/PFS/jenkins/weekly/$(date --iso-8601)
+FLUXCAL=/scratch/gpfs/RUBIN/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 [ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
@@ -79,7 +80,7 @@ unset CONDA_DEFAULT_ENV CONDA_EXE CONDA_PREFIX CONDA_PROMPT_MODIFIER CONDA_PYTHO
 
 # Need these on tiger to get the right environment
 . /etc/profile  # Get "module"
-module load git  # For git-lfs
+module load module-git  # For git-lfs
 module load anaconda3  # For python3 with 'requests', for release_pipe2d.py
 
 set -ev
@@ -89,12 +90,18 @@ state="build"
 mkdir -p $WORKDIR/build
 export SCONSFLAGS="-j $CORES"
 export OMP_NUM_THREADS=1
-export PYTHONWARNINGS="ignore:Gen2 Butler has been deprecated:FutureWarning:"
-$HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # Create release
+
+
+# Princeton's Jenkins is no longer responsible for tagging and releasing the pipeline
+if ( false ); then
+    $HERE/jenkins/release_pipe2d.py -m "Automated weekly build" -b $BRANCH $TAG  # Create release
+fi
+
+
 $HERE/bin/install_pfs.sh -b $TAG -t current $WORKDIR/build  # Test install_pfs, make installation for test
 . $WORKDIR/build/loadLSST.bash
 setup pfs_pipe2d
-setup -jr /scratch/gpfs/HSC/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
+setup -jr $FLUXCAL
 
 # Run the weekly production test
 state="test"

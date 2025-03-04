@@ -2,15 +2,10 @@
 
 # Configuration parameters
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/  # Parent directory of this script
-WORKDIR=/scratch/pprice/jenkins  # Working directory
-STACK=/scratch/gpfs/HSC/PFS/stack/current  # Stack directory
+WORKDIR=/scratch/gpfs/RUBIN/PFS/jenkins  # Working directory
+STACK=/scratch/gpfs/RUBIN/PFS/stack-20250303  # Stack directory
 DISTRIB=/tigress/HSC/PFS/distrib  # Distribution directory
 export SCONSFLAGS="-j 4"  # SCons build flags
-
-# Need these on tiger to get the right environment
-. /etc/profile  # Get "module"
-module load rh/devtoolset/6  # Get modern compiler
-module load git  # For git-lfs
 
 set -ev
 

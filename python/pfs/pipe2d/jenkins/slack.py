@@ -2,7 +2,7 @@ import requests
 
 SLACK_AUTH = "/home/pprice/.pfs/slack_api_token"
 SLACK_URL = "https://slack.com/api/chat.postMessage"
-SLACK_CHANNEL = "CAFPUKB7E"  # Channel ID for #drp-2d-travis
+SLACK_CHANNEL = "CAFPUKB7E"  # Channel ID for #drp-2d-integration
 
 
 __all__ = ("getSlackToken", "postSlack")
