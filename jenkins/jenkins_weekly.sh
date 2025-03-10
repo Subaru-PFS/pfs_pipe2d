@@ -29,6 +29,7 @@ notify_on_exit () {
 # https://stackoverflow.com/a/20564208/834250
 
 exec 3>&1 4>&2 1> >(tee -a $LOG_FILE >&3) 2> >(tee -a $LOG_FILE >&4)
+export CLEANUP=
 trap 'cleanup' INT QUIT TERM EXIT
 
 get_pids_of_ppid() {
@@ -46,6 +47,10 @@ cleanup() {
     # This ensures no zombies get left around (e.g., logging).
     local current_pid element
     local pids=( "$$" )
+
+    # Don't allow this to be called repeatedly
+    [[ -n "$CLEANUP" ]] && exit 0
+    export CLEANUP="done"
 
     chmod -R g+rw $WORKDIR
     notify_on_exit
