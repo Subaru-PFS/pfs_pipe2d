@@ -55,7 +55,7 @@ install_lsst () {
 
 # Parse command-line arguments
 BRANCH=
-LSST_VERSION=v28_0_1
+LSST_VERSION=w_2025_18
 PACKAGES="cp_pipe ctrl_bps ctrl_bps_parsl display_ds9 display_matplotlib display_astrowidgets"
 FROM_SOURCE=false
 while getopts ":hL:p:S" opt; do
