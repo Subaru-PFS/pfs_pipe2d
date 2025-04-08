@@ -4,7 +4,5 @@ __pycache__
 .pytest_cache
 tests/.tests
 python/pfs/pipe2d/version.py
-python/pfs/pipe2d/ticket.cache.*
+python/pfs_pipe2d.dist-info
 bin/generateChangelog.py
-bin/generateCommands.py
-bin/generateReductionSpec.py
