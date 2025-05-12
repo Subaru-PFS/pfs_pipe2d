@@ -69,8 +69,8 @@ defineVisitGroup.py $DATASTORE PFS-F 56 57 --collection PFS-F/raw/pfsConfig --fo
 defineVisitGroup.py $DATASTORE PFS-F 58 59 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, bmn
 # 60 and 61 are single exposures (short exposure time with pfsDesignId=1, brn and bmn).
 
-defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'"
-defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0"
+defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'" --collection PFS-F/raw/pfsConfig
+defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0" --collection PFS-F/raw/pfsConfig
 
 # Calibs
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/calib -o "$RERUN"/bias -p $DRP_STELLA_DIR/pipelines/bias.yaml -d "instrument='PFS-F' AND visit.target_name = 'BIAS' AND arm IN ('b', 'r', 'm')" --fail-fast -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False

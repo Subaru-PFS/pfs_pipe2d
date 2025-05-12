@@ -115,8 +115,8 @@ defineVisitGroup.py $DATASTORE PFS-F 24 --collection PFS-F/raw/pfsConfig  # pfsD
 defineVisitGroup.py $DATASTORE PFS-F 25 --collection PFS-F/raw/pfsConfig  # pfsDesignId=2, long exposure
 defineVisitGroup.py $DATASTORE PFS-F 26 --collection PFS-F/raw/pfsConfig  # pfsDesignId=1, short exposure
 defineVisitGroup.py $DATASTORE PFS-F 27 --collection PFS-F/raw/pfsConfig  # pfsDesignId=2, short exposure
-defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'"
-defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0"
+defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'" --collection PFS-F/raw/pfsConfig
+defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0" --collection PFS-F/raw/pfsConfig
 
 # Calibs
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/calib -o "$RERUN"/bias -p $DRP_STELLA_DIR/pipelines/bias.yaml -d "instrument='PFS-F' AND visit.target_name = 'BIAS'" --fail-fast -c isr:doCrosstalk=False
