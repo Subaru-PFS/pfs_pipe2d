@@ -63,12 +63,6 @@ ingestPfsConfig.py $DATASTORE lsst.obs.pfs.PfsSimulator PFS-F/raw/pfsConfig $WOR
 makePfsDefects --lam
 butler write-curated-calibrations $DATASTORE lsst.obs.pfs.PfsSimulator --collection PFS-F/calib
 
-defineVisitGroup.py $DATASTORE PFS-F 50 51 52 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, brn
-defineVisitGroup.py $DATASTORE PFS-F 53 54 55 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, bmn
-defineVisitGroup.py $DATASTORE PFS-F 56 57 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, brn
-defineVisitGroup.py $DATASTORE PFS-F 58 59 --collection PFS-F/raw/pfsConfig --force  # pfsDesignId=1, bmn
-# 60 and 61 are single exposures (short exposure time with pfsDesignId=1, brn and bmn).
-
 defineCombination.py $DATASTORE PFS-F object --where "visit.target_name = 'OBJECT'" --collection PFS-F/raw/pfsConfig --max-group-size 100
 defineCombination.py $DATASTORE PFS-F quartz --where "visit.target_name = 'FLAT' AND dither = 0" --collection PFS-F/raw/pfsConfig
 
@@ -121,7 +115,7 @@ butler certify-calibrations $DATASTORE "$RERUN"/fiberNorms PFS-F/calib fiberNorm
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/observing -p '$DRP_STELLA_DIR/pipelines/observing.yaml' -d "combination IN ('object', 'quartz')" --fail-fast -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False
 
 # Science pipeline
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib,PFS-F/objectGroups -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'object'" --fail-fast -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c fitFluxCal:fitFocalPlane.polyOrder=0
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib,PFS-F/objectGroups -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'object'" --fail-fast -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c fitFluxCal:fitFocalPlane.polyOrder=0 -c cosmicray:grouping=manual -c 'cosmicray:groups={50: 1, 51: 1, 52: 1, 53: 2, 54: 2, 55: 2, 56: 3, 57: 3, 58: 4, 59: 4, 60: 5, 61: 6}'
 
 # Exports products
 exportPfsProducts.py -b $DATASTORE -i PFS-F/raw/pfsConfig,"$RERUN"/observing,"$RERUN"/science -o $WORKDIR/export
