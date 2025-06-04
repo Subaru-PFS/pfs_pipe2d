@@ -74,6 +74,6 @@ defineVisitGroup.py $DATASTORE PFS-F 1000 1001 --collection PFS-F/raw/pfsConfig 
 defineVisitGroup.py $DATASTORE PFS-F 1002 1003 --collection PFS-F/raw/pfsConfig --force # first design, bmn
 defineVisitGroup.py $DATASTORE PFS-F 1004 1005 --collection PFS-F/raw/pfsConfig --force # second design, brn
 defineVisitGroup.py $DATASTORE PFS-F 1006 1007 --collection PFS-F/raw/pfsConfig --force # second design, bmn
-defineCombination.py $DATASTORE PFS-F science 1000 1001 1002 1003 1004 1005 1006 1007
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN" -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'science'" --fail-fast -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c fitFluxCal:fitFocalPlane.polyOrder=0
+defineCombination.py $DATASTORE PFS-F science 1000 1001 1002 1003 1004 1005 1006 1007 --collection PFS-F/raw/pfsConfig --max-group-size 100
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib,PFS-F/objectGroups -o "$RERUN" -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'science'" --fail-fast -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c fitFluxCal:fitFocalPlane.polyOrder=0
 exportPfsProducts.py -b $DATASTORE -i PFS-F/raw/pfsConfig,"$RERUN" -o $WORKDIR/export --visits "combination = 'science'"
