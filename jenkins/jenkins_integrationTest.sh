@@ -7,9 +7,9 @@
 # The following environment variables are set by Jenkins for all runs:
 # BUILD_NUMBER: The current build number
 
-STACK_DIR=/scratch/gpfs/RUBIN/PFS/stack-20250303
-WORKDIR=/scratch/gpfs/RUBIN/PFS/jenkins/integrationTest/${BUILD_NUMBER}
-FLUXCAL=/scratch/gpfs/RUBIN/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
+STACK_DIR=/scratch/gpfs/SUMIRE/stack/current
+WORKDIR=/scratch/gpfs/SUMIRE/jenkins/integrationTest/${BUILD_NUMBER}
+FLUXCAL=/scratch/gpfs/SUMIRE/fluxCal/fluxmodeldata-ambre-20230608-small
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 LOG_NAME=integration_${BUILD_NUMBER}

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-WORKDIR=/scratch/gpfs/RUBIN/PFS/jenkins/weekly/$(date --iso-8601)
-FLUXCAL=/scratch/gpfs/RUBIN/PFS/fluxCal/fluxmodeldata-ambre-20230608-small
+WORKDIR=/scratch/gpfs/SUMIRE/jenkins/weekly/$(date --iso-8601)
+FLUXCAL=/scratch/gpfs/SUMIRE/fluxCal/fluxmodeldata-ambre-20230608-small
 CORES=10
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 [ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
