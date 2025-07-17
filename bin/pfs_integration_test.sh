@@ -140,7 +140,8 @@ pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.
 butler certify-calibrations $DATASTORE "$RERUN"/fiberNorms PFS-F/calib fiberNorms_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 # Single exposure pipeline for observing
-pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/observing -p '$DRP_STELLA_DIR/pipelines/observing.yaml' -d "combination IN ('object', 'quartz')" --fail-fast -c isr:doCrosstalk=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c 'reduceExposure:targetType=[SCIENCE, SKY, FLUXSTD]'
+# Excluding fluxCal since our flux standards don't match Gaia
+pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/observing -p '$DRP_STELLA_DIR/pipelines/observing.yaml#processExposure' -d "combination IN ('object', 'quartz')" --fail-fast -c isr:doCrosstalk=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c 'reduceExposure:targetType=[SCIENCE, SKY, FLUXSTD]'
 
 # Science pipeline
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib,PFS-F/objectGroups -o "$RERUN"/science -p '$DRP_STELLA_DIR/pipelines/science.yaml' -d "combination = 'object'" --fail-fast -c isr:doCrosstalk=False -c fitFluxCal:fitFocalPlane.polyOrder=0 -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c 'reduceExposure:targetType=[SCIENCE, SKY, FLUXSTD]' -c cosmicray:grouping=separate
