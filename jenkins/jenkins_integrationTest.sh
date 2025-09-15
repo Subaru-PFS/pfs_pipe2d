@@ -32,7 +32,7 @@ build_package () {
     local repoName=$(basename $repo)
 
     local repoDir=$(basename $repo)
-    ( git clone --branch=$commit --single-branch https://github.com/$repo $repoDir || git clone --branch=master --single-branch https://github.com/$repo $repoDir )
+    ( git clone --branch=$commit --single-branch git@github.com:$repo $repoDir || git clone --branch=master --single-branch git@github.com:$repo $repoDir )
     pushd ${repoDir}
     setup -k -r .
     scons
