@@ -112,7 +112,7 @@ pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.
 butler certify-calibrations $DATASTORE "$RERUN"/fiberNorms PFS-F/calib fiberNorms_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/skyNorms -p '$DRP_STELLA_DIR/pipelines/skyNorms.yaml' -d "instrument='PFS-F' AND combination = 'object'" -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c reduceExposure:doScatteredLight=False -c reduceExposure:doApplyPfiCorrection=False -c skyNorms:fitFocalPlane.order=0 --fail-fast
-butler certify-calibrations $DATASTORE "$RERUN"/skyNorms PFS-F/calib skyNorms --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
+butler certify-calibrations $DATASTORE "$RERUN"/skyNorms PFS-F/calib skyNorms_calib --begin-date 2000-01-01T00:00:00 --end-date 2050-12-31T23:59:59
 
 # Single exposure pipeline for observing
 pipetask run --register-dataset-types -j $CORES -b $DATASTORE --instrument lsst.obs.pfs.PfsSimulator -i PFS-F/raw/sps,PFS-F/raw/pfsConfig,PFS-F/calib -o "$RERUN"/observing -p '$DRP_STELLA_DIR/pipelines/observing.yaml' -d "combination IN ('object', 'quartz')" --fail-fast -c isr:doCrosstalk=False -c isr:h4.quickCDS=True -c isr:h4.doIPC=False -c isr:h4.useDarkCube=False -c reduceExposure:doApplyScreenResponse=False -c reduceExposure:doBlackSpotCorrection=False -c reduceExposure:doScatteredLight=False -c reduceExposure:doApplyPfiCorrection=False
