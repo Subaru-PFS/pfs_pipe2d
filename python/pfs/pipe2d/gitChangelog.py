@@ -20,11 +20,11 @@ JIRA_TICKET_CACHE = os.path.join(os.environ["HOME"], ".pfs", "ticket.cache")
 """Location of JIRA ticket cache
 """
 
-JIRA_API_URL = r"https://pfspipe.ipmu.jp/jira/rest/api/2"
+JIRA_API_URL = r"https://pfs-jira.naoj.org/jira/rest/api/2"
 """URL for JIRA REST API. For accessing ticket information (`str`)
 """
 
-JIRA_URL = r"https://pfspipe.ipmu.jp/jira"
+JIRA_URL = r"https://pfs-jira.naoj.org/jira"
 """URL for JIRA tickets. For providing hyperlinks in output changelog (`str`)
 """
 
