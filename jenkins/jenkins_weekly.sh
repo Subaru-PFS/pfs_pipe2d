@@ -2,7 +2,7 @@
 
 WORKDIR=/scratch/gpfs/SUMIRE/jenkins/weekly/$(date --iso-8601)
 FLUXCAL=/scratch/gpfs/SUMIRE/fluxCal/fluxmodeldata-ambre-20230608-small
-CORES=10
+CORES=4
 HERE=$(unset CDPATH && cd "$(dirname "$0")/.." && pwd)/
 [ -z "$TAG" ] && TAG=$(date +'w.%Y.%U')
 [ -z "$BRANCH" ] && BRANCH=master
