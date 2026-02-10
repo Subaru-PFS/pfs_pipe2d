@@ -40,7 +40,7 @@ install_lsst () {
     source loadLSST.bash
 
     # Install additional conda packages for PFS
-    mamba install -y --no-deps jupyter notebook ipython ipympl ipywidgets astroplan ipyevents ginga mypy black isort pygithub pyopenssl astrowidgets 'click < 8.2'
+    mamba install -y --no-deps jupyter notebook ipython ipympl ipywidgets astroplan ipyevents ginga mypy black isort pygithub pyopenssl astrowidgets
 
     # Install LSST packages
     install_args=
