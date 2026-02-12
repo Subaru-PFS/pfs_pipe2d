@@ -12,16 +12,16 @@ LABEL author=price@astro.princeton.edu
 # * igprof: profiler
 
 USER root
-RUN yum install -y libXft gdb valgrind libatomic libunwind libunwind-devel cmake \
+RUN yum install -y libXft gdb valgrind libatomic cmake \
  && yum clean all -y
 
 USER pfs
 RUN . /opt/pfs/loadLSST.bash \
- && mamba install -y --no-update-deps libtool autoconf automake
+ && mamba install -y --no-deps libtool autoconf automake m4
 
 RUN cd /opt/pfs \
  && . /opt/pfs/loadLSST.bash \
- && curl -Lf https://github.com/libunwind/libunwind/archive/refs/tags/v1.6.2.tar.gz > libunwind.tar.gz \
+ && curl -Lf https://github.com/libunwind/libunwind/archive/refs/tags/v1.8.3.tar.gz > libunwind.tar.gz \
  && tar xvzf libunwind.tar.gz \
  && cd $(tar -tzf libunwind.tar.gz | head -1 | cut -f1 -d"/") \
  && autoreconf -i \
