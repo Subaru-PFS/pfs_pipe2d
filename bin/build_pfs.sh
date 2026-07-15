@@ -6,10 +6,9 @@ usage() {
     echo "" 1>&2
     echo "Requires that the LSST pipeline has already been installed and setup." 1>&2
     echo "" 1>&2
-    echo "Usage: $0 [-b <BRANCH>] [-l] [-t TAG]" 1>&2
+    echo "Usage: $0 [-b <BRANCH>] [-t TAG]" 1>&2
     echo "" 1>&2
     echo "    -b <BRANCH> : name of branch on PFS to install" 1>&2
-    echo "    -l : limited install (w/o drp_stella, pfs_pipe2d)" 1>&2
     echo "    -t : tag name to apply" 1>&2
     echo "" 1>&2
     exit 1
@@ -53,15 +52,11 @@ build_package () {
 
 # Parse command-line arguments
 BRANCH="master"
-LIMITED=false
 TAG=
 while getopts ":b:hlt:" opt; do
     case "${opt}" in
         b)
             BRANCH=${OPTARG}
-            ;;
-        l)
-            LIMITED=true
             ;;
         t)
             TAG=${OPTARG}
@@ -86,10 +81,7 @@ env
 
 build_package Subaru-PFS/datamodel $BRANCH "$TAG"
 build_package Subaru-PFS/pfs_utils $BRANCH "$TAG"
+build_package Subaru-PFS/drp_pfs_data $BRANCH "$TAG"
 build_package Subaru-PFS/obs_pfs $BRANCH "$TAG"
-
-if [ "$LIMITED" = false ]; then
-    build_package Subaru-PFS/drp_pfs_data $BRANCH "$TAG"
-    build_package Subaru-PFS/drp_stella $BRANCH "$TAG"
-    build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
-fi
+build_package Subaru-PFS/drp_stella $BRANCH "$TAG"
+build_package Subaru-PFS/pfs_pipe2d $BRANCH "$TAG"
